@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Il Fai Lettere</title>
+<style>
+  :root{
+    --bg:#f2f2f7; --card:#ffffff; --text:#1c1c1e; --sub:#8e8e93;
+    --accent:#007aff; --border:#e5e5ea;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; padding:16px; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Segoe UI,Roboto,sans-serif;
+    color:var(--text);
+  }
+  h1{font-size:20px; font-weight:700; margin:4px 0 16px;}
+  .brand{font-size:15px; font-weight:700; color:var(--accent); margin:0 0 10px;}
+  .card{
+    background:var(--card); border-radius:14px; padding:14px;
+    margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,0.04);
+  }
+  label{font-size:13px; font-weight:600; color:var(--sub); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.02em;}
+  textarea{
+    width:100%; min-height:220px; border:1px solid var(--border); border-radius:10px;
+    padding:10px; font-size:14px; font-family:ui-monospace,Menlo,monospace;
+    resize:vertical; background:#fafafa;
+  }
+  select, input[type="password"], input[type="text"]{
+    width:100%; border:1px solid var(--border); border-radius:10px;
+    padding:10px; font-size:14px; font-family:inherit;
+    background:#fafafa; margin-bottom:14px; -webkit-appearance:none;
+  }
+  .small{font-size:12px; color:var(--sub);}
+  #epiOutput, #epiOutputCodici{
+    font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:60px;
+    background:#fafafa; border:1px solid var(--border); border-radius:10px; padding:10px;
+  }
+  #epiOutput:focus{outline:2px solid var(--accent); background:#fff;}
+  button{
+    -webkit-appearance:none; border:none; background:var(--accent); color:#fff;
+    font-size:16px; font-weight:600; padding:12px 18px; border-radius:12px;
+    width:100%; margin-top:10px; cursor:pointer;
+  }
+  button.secondary{background:#e5e5ea; color:var(--text); margin-top:8px;}
+  button:active{opacity:0.75;}
+  #output{
+    font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:20px;
+  }
+  #output b{font-weight:700;}
+  .empty{color:var(--sub); font-size:14px;}
+  .warn{
+    font-size:12px; color:#c7791b; background:#fff6e9; border:1px solid #f0dcb5;
+    border-radius:8px; padding:8px 10px; margin-top:10px; display:none;
+  }
+  .info{
+    font-size:12px; color:#8a5cf6; background:#f4f0fe; border:1px solid #ddd0fb;
+    border-radius:8px; padding:8px 10px; margin-top:10px; display:none;
+  }
+  details{margin-top:10px;}
+  summary{font-size:12px; color:var(--sub); cursor:pointer;}
+  .drug-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:4px 0; border-bottom:1px solid var(--border);
+  }
+  .drug-row:last-child{border-bottom:none;}
+  .drug-text{flex:1;}
+  .history-row{
+    display:flex; flex-direction:column; gap:2px;
+    padding:8px 10px; border-radius:8px; margin-bottom:6px;
+    background:#fafafa; border:1px solid var(--border); cursor:pointer;
+  }
+  .history-row:active{background:#eee;}
+  .history-time{font-size:11px; font-weight:700; color:var(--accent);}
+  .history-preview{font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .decalage-btn{
+    -webkit-appearance:none; border:1px solid var(--accent); background:#fff; color:var(--accent);
+    font-size:11px; font-weight:600; padding:5px 8px; border-radius:8px; width:auto; margin:0;
+    white-space:nowrap; cursor:pointer;
+  }
+  .decalage-btn:active{opacity:0.6;}
+  .decalage-days{
+    display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:13px;
+  }
+  .decalage-days input{width:50px; padding:6px; border:1px solid var(--border); border-radius:8px; font-size:14px;}
+  .tabs{display:flex; gap:8px; margin-bottom:14px;}
+  .tab-btn{
+    -webkit-appearance:none; border:none; background:#e5e5ea; color:var(--sub);
+    font-size:14px; font-weight:600; padding:10px 14px; border-radius:10px;
+    width:auto; margin:0; flex:1; cursor:pointer;
+  }
+  .tab-btn.active{background:var(--accent); color:#fff;}
+  .spinner{
+    display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4);
+    border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:-2px; margin-right:6px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #anamnesiOutput{ font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:20px; }
+</style>
+</head>
+<body>
+
+<div class="brand">Il Fai Lettere</div>
+<div class="tabs">
+  <button class="tab-btn active" id="tabBtnAnamnesi" onclick="switchTab('anamnesi')">Anamnesi</button>
+  <button class="tab-btn" id="tabBtnFarmaci" onclick="switchTab('farmaci')">Farmaci</button>
+  <button class="tab-btn" id="tabBtnEpicrisi" onclick="switchTab('epicrisi')">Epicrisi</button>
+</div>
+
+<div id="panelFarmaci" style="display:none;">
+<h1>Formatta Terapia</h1>
+
+<div class="card">
+  <label for="input">Elenco farmaci (incolla da cartella clinica)</label>
+  <textarea id="input" placeholder="Incolla qui l'elenco copiato dalla cartella clinica..."></textarea>
+  <button onclick="run()">Formatta</button>
+</div>
+
+<div class="card">
+  <label>Risultato</label>
+  <div id="output"><span class="empty">Il risultato formattato comparirà qui.</span></div>
+  <div class="warn" id="warn"></div>
+  <div class="info" id="info"></div>
+  <div class="decalage-days" id="decalageDaysWrap" style="display:none;">
+    Giorni per step decalage: <input type="number" id="decalageDays" value="6" min="1">
+  </div>
+  <button class="secondary" onclick="copyOut()">Copia</button>
+  <details id="farmaciHistoryDetails" style="display:none;">
+    <summary>Cronologia (ultimi 5)</summary>
+    <div id="farmaciHistoryList" style="margin-top:8px;"></div>
+  </details>
+  <details>
+    <summary>Impostazioni avanzate (parole da escludere dal nome, ecc.)</summary>
+    <div style="margin-top:8px; font-size:13px;">
+      <label style="text-transform:none; font-weight:500;">Parole da rimuovere dal nome (es. FORTE, ZEN, TIL, FLEXT)</label>
+      <textarea id="stopwords" style="min-height:36px;">FORTE, ZEN, MITE, PLUS, SR, TIL, FLEXT, TE, ACC, AURO, DOC, RAN, MYLAN, MY, SA</textarea>
+      <label style="text-transform:none; font-weight:500; margin-top:8px;">Vie di somministrazione da mantenere dopo il dosaggio</label>
+      <textarea id="routes" style="min-height:36px;">SC, IM, EV, IV, OS, TD, SL</textarea>
+      <label style="text-transform:none; font-weight:500; margin-top:8px;">Parole che indicano "ML" come volume di confezione, non dosaggio (dosaggio omesso se presenti)</label>
+      <textarea id="bulkwords" style="min-height:36px;">SOSPENSIONE, SCIROPPO, SOLUZIONE, FLACONE, GOCCE</textarea>
+    </div>
+  </details>
+</div>
+</div>
+
+<div id="panelAnamnesi">
+<h1>Sistema Anamnesi</h1>
+
+<div class="card">
+  <label for="anamnesiInput">Testo incollato dalla cartella clinica</label>
+  <textarea id="anamnesiInput" style="min-height:280px;" placeholder="Incolla qui il testo grezzo (anamnesi fisiologica, patologica prossima, farmacologica, remota)..."></textarea>
+  <button id="anamnesiBtn" onclick="runAnamnesi()">Sistema Anamnesi</button>
+</div>
+
+<div class="card">
+  <label>Risultato</label>
+  <div id="anamnesiOutput"><span class="empty">Il testo riordinato comparirà qui.</span></div>
+  <div class="warn" id="anamnesiWarn"></div>
+  <button class="secondary" onclick="copyAnamnesiOut()">Copia</button>
+  <details id="anamnesiHistoryDetails" style="display:none;">
+    <summary>Cronologia (ultimi 5)</summary>
+    <div id="anamnesiHistoryList" style="margin-top:8px;"></div>
+  </details>
+</div>
+</div>
+
+<div id="panelEpicrisi" style="display:none;">
+<h1>Epicrisi AI</h1>
+
+<div class="card">
+  <label for="epiApiKey">API Key OpenAI</label>
+  <input id="epiApiKey" type="password" placeholder="sk-...">
+  <p class="small" style="margin:-10px 0 14px;">Viene salvata solo nel browser (localStorage), mai inviata altrove.</p>
+
+  <label for="epiModel">Modello</label>
+  <select id="epiModel">
+    <option>gpt-5.5</option>
+    <option>gpt-5</option>
+  </select>
+
+  <label for="epiTipo">Tipo documento</label>
+  <select id="epiTipo">
+    <option>Epicrisi</option>
+    <option>Riscrittura testo libero</option>
+  </select>
+
+  <label for="epiInput">Appunti</label>
+  <textarea id="epiInput" style="min-height:220px;" placeholder="- Ricovero per...
+- Febbre
+- Ceftriaxone
+- ..."></textarea>
+
+  <button onclick="epiGenera()">Genera</button>
+</div>
+
+<div class="card">
+  <label>Risultato</label>
+  <p class="small" style="margin-top:-10px;">Il testo è modificabile: clicca e correggi liberamente prima di copiare. Il pulsante "Copia" copia solo questo testo.</p>
+  <div id="epiOutput" contenteditable="true"><span class="empty">Il risultato comparirà qui.</span></div>
+  <button class="secondary" onclick="epiCopia()">Copia</button>
+  <details id="epicrisiHistoryDetails" style="display:none;">
+    <summary>Cronologia (ultimi 5)</summary>
+    <div id="epicrisiHistoryList" style="margin-top:8px;"></div>
+  </details>
+</div>
+
+<div class="card" id="epiCodiciBox" style="display:none;">
+  <label>Diagnosi e codici ICD-9-CM</label>
+  <p class="small" style="margin-top:-10px;">Testo generato automaticamente, non incluso nella copia.</p>
+  <div id="epiOutputCodici"></div>
+</div>
+</div>
+
+<script>
+const UNIT_ALTS = ['MG\\/\\d+H','MG\\/ML','MCG\\/ML','UI\\/ML','U\\/ML','MG','MCG','UI','U','ML','G'];
+const POSOLOGY_NORMALIZE = [
+  [/\bCPS\b/gi, 'CP'],
+  [/\bCOMPRESSE\b/gi, 'CP'],
+  [/\bCOMPR\.?\b/gi, 'CP'],
+  [/\bCPR\b/gi, 'CP'],
+  [/\bore\b/gi, 'alle'],
+];
+const COMPOUND_DOSE = /(\d+(?:[.,]\d+)?\+\d+(?:[.,]\d+)?)\s*(MG|MCG|G|UI|U|ML)/i;
+const COMPOUND_PCT = /\d+(?:[.,]\d+)?%\s*\+\s*\d+(?:[.,]\d+)?%/;
+const COMBO_UNIT_WHITELIST = ['ML','MG','MCG','GTT','UI','U','G','FL','CP','CPR','GTT'];
+const TRAILING_QTY_UNITS = ['FL','CP','CPR','GTT','BS','F','MIS','CPS'];
+const DOSE_UNIT_WHITELIST = ['ML','MG','MCG','G','UI','U','GTT','CP','CPR','CPS','FL','BS','F','MIS','CER'];
+
+function getList(id){
+  return document.getElementById(id).value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+}
+
+function normTime(t){ return t === '00:00' ? '24:00' : t; } // mezzanotte = fine giornata, non inizio
+
+function getAdminUnit(posology){
+  const firstSeg = posology.split(',')[0].trim();
+  const m = firstSeg.match(/^\S+\s+([A-Za-zÀ-ú]+)\s+alle/i);
+  return m ? m[1] : null;
+}
+
+function tryExtendToAdminUnit(doseCore, afterText, adminUnit){
+  // Se l'unità di somministrazione (es. GTT) ricompare più avanti nel dosaggio di confezione,
+  // mantiene tutta la concentrazione (utile per formulazioni in gocce/soluzioni)
+  if(!adminUnit) return doseCore;
+  const re = new RegExp('\\b' + adminUnit.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b\\.?', 'i');
+  const m = re.exec(afterText);
+  if(!m) return doseCore;
+  const span = afterText.slice(0, m.index + m[0].length);
+  const tokens = span.trim().split(/\s+/).filter(Boolean);
+  const okUnit = t => DOSE_UNIT_WHITELIST.includes(t.replace(/\.$/,'').toUpperCase());
+  const allOk = tokens.length && tokens.every(t => /^\d/.test(t) || okUnit(t) || t.replace(/\.$/,'').toUpperCase() === adminUnit.toUpperCase());
+  if(!allOk) return doseCore;
+  return doseCore + ' ' + span.trim();
+}
+
+function findDose(text, bulkWords, routeWhitelist, adminUnit){
+  if(COMPOUND_PCT.test(text)) return null; // dosaggio composto (es. 4%+3,5%): troppo ambiguo, si omette
+  let doseCore, matchEnd;
+  const cm = COMPOUND_DOSE.exec(text);
+  if(cm){
+    // dosaggio a due principi attivi glue­d (es. "1+200MG"): mantenuto intero
+    doseCore = cm[1] + cm[2].toUpperCase();
+    matchEnd = cm.index + cm[0].length;
+  } else {
+    const re = new RegExp('(\\d+(?:[.,]\\d+)?)\\s*(' + UNIT_ALTS.join('|') + ')', 'gi');
+    let m, found = null;
+    while((m = re.exec(text)) !== null){
+      const unit = m[2].toUpperCase();
+      if(unit === 'ML'){
+        const after0 = text.slice(m.index + m[0].length);
+        const nextWord = after0.match(/^\s*([A-Za-zÀ-ú.]+)/);
+        if(nextWord && bulkWords.includes(nextWord[1].replace(/\.$/,'').toUpperCase())){
+          continue; // "ML" è volume di confezione, non dosaggio: salta e cerca altrove
+        }
+      }
+      found = m; break;
+    }
+    if(!found) return null;
+    doseCore = found[1] + ' ' + found[2].toUpperCase();
+    matchEnd = found.index + found[0].length;
+  }
+  let after = text.slice(matchEnd);
+  const routeMatch = after.match(/^\s+([A-Za-zÀ-ú]+)/);
+  if(routeMatch && routeWhitelist.includes(routeMatch[1].toUpperCase())){
+    doseCore += ' ' + routeMatch[1].toUpperCase();
+    after = after.slice(routeMatch[0].length);
+  }
+  doseCore = tryExtendToAdminUnit(doseCore, after, adminUnit);
+  return doseCore;
+}
+
+function extractName(tokens, stopwords){
+  return tokens.filter(t => !stopwords.includes(t.toUpperCase()) && !/^\d+$/.test(t)).join(' ');
+}
+
+function sortPosologySegments(posology){
+  const segments = posology.split(',').map(s=>s.trim());
+  segments.sort((a,b) => {
+    const ta = normTime((a.match(/\d{2}:\d{2}/)||[])[0] || '');
+    const tb = normTime((b.match(/\d{2}:\d{2}/)||[])[0] || '');
+    return ta.localeCompare(tb);
+  });
+  return segments.join(', ');
+}
+
+function parseSingle(line, stopwords, bulkWords, routes){
+  const timeMatch = line.match(/\(([^)]*\d{2}:\d{2}[^)]*)\)/);
+  const slidingMatch = line.match(/\(([^)]*\/\/[^)]*)\)/);
+  let posology;
+  if(timeMatch){ posology = timeMatch[1]; }
+  else if(slidingMatch){ posology = slidingMatch[1]; }
+  else return null; // combo/unrecognized
+
+  const parenIdx = line.indexOf('(');
+  const head = line.slice(0, parenIdx).trim();
+
+  POSOLOGY_NORMALIZE.forEach(([re, rep]) => posology = posology.replace(re, rep));
+  const adminUnit = getAdminUnit(posology);
+
+  let finalPosology;
+  if(/\/\//.test(posology)){
+    // dose "al bisogno" (es. scala mobile insulinica su stick glicemico)
+    const times = [...posology.matchAll(/(\d{2}:\d{2})/g)].map(m=>m[1]).sort();
+    finalPosology = ['secondo stick glicemici', ...times.map(t=>'alle '+t)].join(', ');
+  } else {
+    posology = posology.replace(/\s*,\s*/g, ', ').trim();
+    finalPosology = sortPosologySegments(posology);
+  }
+
+  let name, restPart;
+  if(head.includes('*')){
+    const idx = head.indexOf('*');
+    const namePart = head.slice(0, idx).trim();
+    restPart = head.slice(idx + 1).trim();
+    name = extractName(namePart.split(/\s+/), stopwords);
+  } else {
+    const tokens = head.split(/\s+/);
+    const firstDigitIdx = tokens.findIndex(t => /\d/.test(t));
+    const nameTokens = firstDigitIdx === -1 ? tokens : tokens.slice(0, firstDigitIdx);
+    if(nameTokens.includes('+')){
+      // nomi composti tipo "AMOXICILLINA + AC CLAV" -> "AMOXICILLINA/AC. CLAV"
+      name = nameTokens.map(t => {
+        if(t === '+') return '/';
+        if(t.toUpperCase() === 'AC') return 'AC.';
+        return t;
+      }).filter(t => !stopwords.includes(t.toUpperCase())).join(' ').replace(/\s*\/\s*/g, '/');
+    } else {
+      name = extractName(nameTokens, stopwords);
+    }
+    restPart = firstDigitIdx === -1 ? '' : tokens.slice(firstDigitIdx).join(' ');
+  }
+
+  const dose = findDose(restPart || '', bulkWords, routes, adminUnit);
+  const firstTimeMatch = finalPosology.match(/\d{2}:\d{2}/);
+  const PPI_LIST = ['PANTOPRAZOLO','OMEPRAZOLO','LANSOPRAZOLO','ESOMEPRAZOLO'];
+  const isPPI = PPI_LIST.some(ppi => name.toUpperCase().includes(ppi));
+
+  // segmenti strutturati (qty/unit/orario) per lo schema di decalage - solo se posologia standard (no scala mobile)
+  let segments = null;
+  if(!/secondo stick glicemici/.test(finalPosology)){
+    segments = finalPosology.split(',').map(s => s.trim()).map(seg => {
+      const m = seg.match(/^(\S+)\s+(\S+)\s+alle\s+(\d{2}:\d{2})$/i);
+      return m ? {qty: m[1], unit: m[2].toUpperCase(), time: m[3]} : null;
+    });
+    if(segments.some(s => !s)) segments = null; // formato non standard: niente decalage
+  }
+
+  return {
+    name: name.toUpperCase(),
+    dose: dose ? dose.toUpperCase() : null,
+    posology: finalPosology,
+    segments,
+    output: dose
+      ? `**${name.toUpperCase()}** ${dose.toUpperCase()} (${finalPosology})`
+      : `**${name.toUpperCase()}** (${finalPosology})`,
+    firstTime: firstTimeMatch ? firstTimeMatch[0] : null,
+    ok: !!name,
+    isPPI
+  };
+}
+
+function parseComboComponent(line){
+  const tokens = line.replace(/^\+\s*/, '').trim().split(/\s+/);
+  const name = tokens[0];
+  let rest = tokens.slice(1);
+
+  let trailingQty = '';
+  if(rest.length >= 2){
+    const last = rest[rest.length-1].replace(/\.$/,'').toUpperCase();
+    const secondLast = rest[rest.length-2];
+    if(TRAILING_QTY_UNITS.includes(last) && /^\d+([.,]\d+)?$/.test(secondLast)){
+      trailingQty = secondLast + ' ' + last;
+      rest = rest.slice(0, -2);
+    }
+  }
+
+  let doseTokens = [];
+  for(let i=0; i<rest.length; i++){
+    const t = rest[i];
+    const startsDigitOrPct = /^[\d%]/.test(t);
+    const isWhitelistUnit = COMBO_UNIT_WHITELIST.includes(t.replace(/\.$/,'').toUpperCase());
+    if(i === 0 && !startsDigitOrPct) break;
+    if(startsDigitOrPct || isWhitelistUnit){ doseTokens.push(t); }
+    else break;
+  }
+  const dose = doseTokens.join(' ');
+  return trailingQty ? `${name} ${dose} ${trailingQty}` : `${name} ${dose}`.trim();
+}
+
+// --- Cronologia: ultimi 5 risultati per scheda, salvati nel browser ---
+const HISTORY_MAX = 5;
+
+function historyGet(key){
+  try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; }
+}
+function historyAdd(key, entry){
+  const arr = historyGet(key);
+  arr.unshift(entry);
+  localStorage.setItem(key, JSON.stringify(arr.slice(0, HISTORY_MAX)));
+}
+function historyTimeLabel(ts){
+  const d = new Date(ts);
+  const oggi = new Date();
+  const stessoGiorno = d.toDateString() === oggi.toDateString();
+  const ora = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  return stessoGiorno ? ('oggi ' + ora) : (d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'}) + ' ' + ora);
+}
+
+function renderHistoryList(key, listElId, detailsElId, previewFn, restoreFn){
+  const arr = historyGet(key);
+  const listEl = document.getElementById(listElId);
+  const detailsEl = document.getElementById(detailsElId);
+  if(!arr.length){ detailsEl.style.display = 'none'; listEl.innerHTML = ''; return; }
+  detailsEl.style.display = '';
+  listEl.innerHTML = '';
+  arr.forEach((entry, idx) => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = '<span class="history-time">' + historyTimeLabel(entry.ts) + '</span>' +
+                     '<span class="history-preview">' + previewFn(entry) + '</span>';
+    row.onclick = () => restoreFn(entry);
+    listEl.appendChild(row);
+  });
+}
+
+function run(){
+  const raw = document.getElementById('input').value;
+  document.getElementById('decalageDaysWrap').style.display = 'none';
+  saveFarmaciSettings();
+  const stopwords = getList('stopwords');
+  const bulkWords = getList('bulkwords');
+  const routes = getList('routes');
+  const warnEl = document.getElementById('warn');
+  warnEl.style.display = 'none';
+
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l => l && !/^ogni giorno$/i.test(l));
+
+  const items = [];
+  let issues = [];
+  let i = 0;
+  while(i < lines.length){
+    let line = lines[i];
+    let group = [line];
+    while(i+1 < lines.length && lines[i+1].startsWith('+')){
+      i++; group.push(lines[i]);
+    }
+    i++;
+
+    if(group.length > 1){
+      const groupText = group.join(' ').toUpperCase();
+      const isKnownAerosol = groupText.includes('CLENIL') && groupText.includes('ATEM') && groupText.includes('BRONCOVALEAS');
+      if(isKnownAerosol){
+        const parts = group.map(parseComboComponent);
+        items.push({
+          output: `AEROSOL-TERAPIA CON ${parts.join(' + ')}`,
+          firstTime: null, ok: true, segments: null
+        });
+      } else {
+        // combinazione "+" non riconosciuta: non si applica il formato aerosol, va controllata a mano
+        issues.push(group.join(' / '));
+      }
+    } else {
+      const parsed = parseSingle(line, stopwords, bulkWords, routes);
+      if(parsed){
+        items.push(parsed);
+        if(!parsed.ok) issues.push(line);
+      } else {
+        issues.push(line);
+      }
+    }
+  }
+
+  items.sort((a,b) => {
+    if(a.firstTime && b.firstTime){
+      const cmp = normTime(a.firstTime).localeCompare(normTime(b.firstTime));
+      if(cmp !== 0) return cmp;
+      const aPPI = a.isPPI ? 1 : 0, bPPI = b.isPPI ? 1 : 0;
+      return bPPI - aPPI; // PPI prima, poi ordine di apparizione (sort stabile)
+    }
+    if(a.firstTime) return -1;
+    if(b.firstTime) return 1;
+    return 0;
+  });
+
+  if(items.length === 0){
+    document.getElementById('output').innerHTML = '<span class="empty">Nessun farmaco riconosciuto. Controlla il testo incollato.</span>';
+    return;
+  }
+
+  window._items = items;
+  renderOutput();
+
+  if(issues.length){
+    warnEl.style.display = 'block';
+    warnEl.textContent = 'Righe non riconosciute o incomplete (' + issues.length + '): ' + issues.join(' | ');
+  }
+
+  historyAdd('farmaci_history', {ts: Date.now(), input: raw, items: items});
+  renderFarmaciHistory();
+}
+
+function renderFarmaciHistory(){
+  renderHistoryList('farmaci_history', 'farmaciHistoryList', 'farmaciHistoryDetails',
+    entry => (entry.items[0] ? entry.items[0].output.replace(/\*\*/g,'') : '') + (entry.items.length > 1 ? ' +' + (entry.items.length-1) : ''),
+    entry => {
+      document.getElementById('input').value = entry.input;
+      window._items = entry.items;
+      renderOutput();
+    }
+  );
+}
+
+function renderOutput(){
+  const items = window._items || [];
+  const outEl = document.getElementById('output');
+  outEl.innerHTML = items.map((it, idx) => {
+    const html = it.output.replace(/\*\*(.+?)\*\*/, '<b>$1</b>');
+    const isDeltacortene = it.name && it.name.includes('DELTACORTENE');
+    const btn = (it.segments && isDeltacortene) ? `<button class="decalage-btn" onclick="applyDecalage(${idx})">⤵ decalage</button>` : '';
+    return `<div class="drug-row"><span class="drug-text">- ${html}</span>${btn}</div>`;
+  }).join('');
+  window._plainOutput = items.map(it => '- ' + it.output.replace(/\*\*/g,'')).join('\n');
+}
+
+// --- Decalage: schema di riduzione a scalare (dose piena -> metà -> un quarto -> STOP) ---
+function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+function parseFraction(qtyStr){
+  if(qtyStr.includes('/')){
+    const [n,d] = qtyStr.split('/').map(Number);
+    return [n,d];
+  }
+  const n = parseFloat(qtyStr.replace(',', '.'));
+  return [n, 1];
+}
+function halve([n,d]){ return [n, d*2]; }
+function formatFraction([n,d]){
+  const g = gcd(Math.round(n), d) || 1;
+  n = n / g; d = d / g;
+  return d === 1 ? String(n) : `${n}/${d}`;
+}
+
+function applyDecalage(idx){
+  const it = window._items[idx];
+  if(!it || !it.segments) return;
+  document.getElementById('decalageDaysWrap').style.display = 'inline-flex';
+  const days = parseInt(document.getElementById('decalageDays').value, 10) || 6;
+  const unit = it.segments[0].unit;
+  const timesStr = it.segments.map(s => `${s.qty} ${unit} alle ${s.time}`).join(', ');
+
+  const full = parseFraction(it.segments[0].qty);
+  const half = halve(full);
+  const quarter = halve(half);
+
+  const newPosology = `${timesStr} per altri ${days} giorni, poi ${formatFraction(half)} ${unit} per altri ${days} giorni, poi ${formatFraction(quarter)} ${unit} per altri ${days} giorni poi STOP`;
+
+  it.output = it.dose
+    ? `**${it.name}** ${it.dose} (${newPosology})`
+    : `**${it.name}** (${newPosology})`;
+  it.segments = null; // evita di riapplicare il decalage sulla stessa riga
+
+  renderOutput();
+}
+
+function copyOut(){
+  const text = window._plainOutput || document.getElementById('output').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = 'Copiato ✓';
+    setTimeout(()=>btn.textContent = orig, 1200);
+  });
+}
+
+function switchTab(tab){
+  document.getElementById('panelFarmaci').style.display = tab === 'farmaci' ? '' : 'none';
+  document.getElementById('panelAnamnesi').style.display = tab === 'anamnesi' ? '' : 'none';
+  document.getElementById('panelEpicrisi').style.display = tab === 'epicrisi' ? '' : 'none';
+  document.getElementById('tabBtnFarmaci').classList.toggle('active', tab === 'farmaci');
+  document.getElementById('tabBtnAnamnesi').classList.toggle('active', tab === 'anamnesi');
+  document.getElementById('tabBtnEpicrisi').classList.toggle('active', tab === 'epicrisi');
+}
+
+// --- Sistema Anamnesi: solo riordino/impaginazione, nessuna riscrittura, nessuna chiamata esterna ---
+
+function fixApostrophes(t){ return t.replace(/''/g, "'"); }
+function fixNe(t){
+  return t
+    .replace(/(?<![a-zà-ù])nè(?![a-zà-ù])/g, 'né')
+    .replace(/(?<![a-zà-ù])Nè(?![a-zà-ù])/g, 'Né');
+}
+function collapseSpaces(t){ return t.replace(/[ \t]+/g, ' '); }
+function fixPeriodSpace(t){ return t.replace(/\.([A-ZÀ-Ù])/g, '. $1'); }
+function insertMissingPeriods(t){
+  // minuscola+Maiuscola+minuscola(3+) incollate senza spazio = probabile confine di frase mancante.
+  // Richiede almeno 3 lettere minuscole dopo la maiuscola per non toccare sigle/unità tipo mmHg, pCO2, pH.
+  return t.replace(/([a-zà-ù])([A-ZÀ-Ù])(?=[a-zà-ù]{3,})/g, '$1. $2');
+}
+function removeEllipsis(t){ return t.replace(/\.{2,}\s*/g, ' '); }
+function dashListToCommas(t){
+  // trattino tra due lettere maiuscole (es. CRT-D) resta intatto; altrimenti diventa virgola
+  let out = t.replace(/([^\s-])\s*-\s*([^\s-])/g, (m, before, after) => {
+    const bothUpper = /[A-ZÀ-Ù]/.test(before) && /[A-ZÀ-Ù]/.test(after);
+    return bothUpper ? (before + '-' + after) : (before + ', ' + after);
+  });
+  return out.replace(/^,\s*/, '');
+}
+function ensureFinalPeriod(t){
+  t = t.trim();
+  if(t && !/[.!?]$/.test(t)) t += '.';
+  return t;
+}
+function collapseDoublePunct(t){
+  // unisce punteggiatura doppia (es. ";," o ".,") in una singola virgola
+  let x = t;
+  for(let i=0; i<3; i++){
+    x = x.replace(/[;.,]\s*,/g, ',').replace(/,\s*[;.]/g, ',');
+  }
+  return x;
+}
+function cleanProse(t){
+  let x = fixPeriodSpace(t);
+  x = insertMissingPeriods(x);
+  x = removeEllipsis(x);
+  x = dashListToCommas(x);
+  x = collapseDoublePunct(x);
+  x = collapseSpaces(x).trim();
+  x = ensureFinalPeriod(x);
+  return x;
+}
+
+function splitFarmaciList(text){
+  let t = text;
+  t = t.replace(/\)\s*,?\s*(?=\S)/g, ')\n');                    // dopo ")" -> nuova voce
+  t = t.replace(/([a-zà-ù0-9])(?=[A-ZÀ-Ù]{2,})/g, '$1\n');       // minuscola->MAIUSCOLA senza spazio -> nuova voce
+  t = t.replace(/,\s*(?=[a-zà-ù])/g, '\n');                      // virgola + minuscola -> nuova voce
+  return t.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function formatFarmacologica(text){
+  const segments = splitFarmaciList(collapseSpaces(text));
+  const drugs = [], notes = [];
+  segments.forEach(seg => {
+    seg = fixPeriodSpace(seg);
+    if(/\d/.test(seg)) drugs.push(seg.toLowerCase());
+    else notes.push(seg.toLowerCase());
+  });
+  let out = ensureFinalPeriod(drugs.join(', '));
+  if(notes.length){
+    out += ' ' + notes.map(n => ensureFinalPeriod(n.charAt(0).toUpperCase() + n.slice(1))).join(' ');
+  }
+  return out;
+}
+
+function cleanupProssimaLine(t, keepLeadingSpace){
+  let x = fixPeriodSpace(t);
+  x = insertMissingPeriods(x);
+  x = removeEllipsis(x);
+  x = collapseSpaces(x).trim();
+  return keepLeadingSpace ? ' ' + x : x;
+}
+
+function splitDashListBold(text){
+  // per Anamnesi patologica prossima: MANTIENE i trattini, grassetto sull'etichetta prima dei ":"
+  let t = text.replace(/\n+/g, ' '); // normalizza eventuali a-capo già presenti nel testo originale
+  // nuovo esame = "-" seguito da una parola con iniziale maiuscola e da ":" entro poche parole,
+  // indipendentemente da cosa precede il trattino (può essere attaccato a un'unità di misura, es. "ng/L-")
+  t = t.replace(/-(?=\s*[A-ZÀ-Ù][^:\n]{0,40}:)/g, '\n- ');
+  t = t.replace(/^\s*-\s*/, '- ');
+  const lines = t.split('\n').map(s => s.trim()).filter(Boolean);
+  return lines.map((line, idx) => {
+    if(idx === 0 && !line.startsWith('- ')) return cleanupProssimaLine(line, false);
+    const withoutDash = line.replace(/^- /, '').trim();
+    const colonIdx = withoutDash.indexOf(':');
+    if(colonIdx > -1 && colonIdx < 40){
+      const label = withoutDash.slice(0, colonIdx);
+      const rest = withoutDash.slice(colonIdx + 1);
+      return '- **' + label + ':**' + cleanupProssimaLine(rest, true);
+    }
+    return '- ' + cleanupProssimaLine(withoutDash, false);
+  });
+}
+
+function splitAnamnesiSections(raw){
+  const headers = [
+    {key:'fisiologica', re:/anamnesi\s+(fisiologica|familiare)\s*:?/i},
+    {key:'prossima', re:/anamnesi\s+patologica\s+prossima\s*:?/i},
+    {key:'farmacologica', re:/anamnesi\s+farmacologic[ao]\s*:?/i},
+    {key:'remota', re:/anamnesi\s+patologica\s+remota\s*:?/i},
+  ];
+  let matches = [];
+  headers.forEach(h => {
+    const m = h.re.exec(raw);
+    if(m) matches.push({key: h.key, start: m.index, end: m.index + m[0].length});
+  });
+  matches.sort((a,b) => a.start - b.start);
+  const sections = {};
+  for(let i=0; i<matches.length; i++){
+    const start = matches[i].end;
+    const end = i+1 < matches.length ? matches[i+1].start : raw.length;
+    sections[matches[i].key] = raw.slice(start, end).trim();
+  }
+  return {sections, foundKeys: matches.map(m => m.key)};
+}
+
+function formatAnamnesiText(rawInput){
+  const raw = fixNe(fixApostrophes(rawInput));
+  const {sections, foundKeys} = splitAnamnesiSections(raw);
+  const missing = ['fisiologica','remota','prossima'].filter(k => !foundKeys.includes(k));
+
+  let out = [];
+
+  out.push('**Anamnesi familiare e fisiologica:** ' + (sections.fisiologica ? cleanProse(sections.fisiologica) : '(sezione non trovata nel testo originale)'));
+
+  if(sections.farmacologica){
+    out.push('**Anamnesi farmacologica:** ' + formatFarmacologica(sections.farmacologica));
+  }
+  // se la sezione farmacologica non è presente, viene semplicemente omessa
+
+  out.push('**Anamnesi patologica remota:** ' + (sections.remota ? cleanProse(sections.remota.replace(/^-\s*/, '')) : '(sezione non trovata nel testo originale)'));
+
+  out.push('');
+
+  out.push('**Anamnesi patologica prossima**');
+  if(sections.prossima){
+    out.push(splitDashListBold(collapseSpaces(sections.prossima)).join('\n'));
+  } else {
+    out.push('(sezione non trovata nel testo originale)');
+  }
+
+  const finalText = out.join('\n');
+  const longCaps = [...new Set([...finalText.matchAll(/[A-ZÀ-Ù]{15,}/g)].map(m => m[0]))];
+
+  return {text: finalText, missing, longCaps};
+}
+
+function runAnamnesi(){
+  const raw = document.getElementById('anamnesiInput').value.trim();
+  const warnEl = document.getElementById('anamnesiWarn');
+  const outEl = document.getElementById('anamnesiOutput');
+  warnEl.style.display = 'none';
+
+  if(!raw){
+    outEl.innerHTML = '<span class="empty">Incolla prima il testo da sistemare.</span>';
+    return;
+  }
+
+  const {text, missing, longCaps} = formatAnamnesiText(raw);
+  window._anamnesiPlain = text.replace(/\*\*/g, '');
+  outEl.innerHTML = text
+    .split('\n')
+    .map(line => line.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'))
+    .join('<br>');
+
+  const notes = [];
+  if(missing.length){
+    notes.push('Sezioni non trovate nel testo (intestazione non riconosciuta): ' + missing.join(', ') + '.');
+  }
+  if(longCaps.length){
+    notes.push('Possibili parole ancora attaccate senza spazio, da controllare a mano: ' + longCaps.join(', ') + '.');
+  }
+  if(notes.length){
+    warnEl.style.display = 'block';
+    warnEl.textContent = notes.join(' ');
+  }
+
+  historyAdd('anamnesi_history', {ts: Date.now(), input: raw, text: text});
+  renderAnamnesiHistory();
+}
+
+function renderAnamnesiHistory(){
+  renderHistoryList('anamnesi_history', 'anamnesiHistoryList', 'anamnesiHistoryDetails',
+    entry => entry.text.replace(/\*\*/g,'').replace(/\n/g,' ').slice(0, 60) + '…',
+    entry => {
+      document.getElementById('anamnesiInput').value = entry.input;
+      window._anamnesiPlain = entry.text.replace(/\*\*/g, '');
+      document.getElementById('anamnesiOutput').innerHTML = entry.text
+        .split('\n')
+        .map(line => line.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'))
+        .join('<br>');
+    }
+  );
+}
+
+function copyAnamnesiOut(){
+  const text = window._anamnesiPlain || document.getElementById('anamnesiOutput').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = 'Copiato ✓';
+    setTimeout(()=>btn.textContent = orig, 1200);
+  });
+}
+// --- Epicrisi AI: chiama l'API OpenAI con la chiave inserita dall'utente ---
+
+// --- Persistenza impostazioni avanzate Farmaci (stopword, vie, ecc.) ---
+const FARMACI_SETTINGS_IDS = ['stopwords', 'routes', 'bulkwords', 'decalageDays'];
+
+function loadFarmaciSettings(){
+  FARMACI_SETTINGS_IDS.forEach(id => {
+    const saved = localStorage.getItem('farmaci_setting_' + id);
+    if(saved !== null){
+      document.getElementById(id).value = saved;
+    }
+  });
+}
+function saveFarmaciSettings(){
+  FARMACI_SETTINGS_IDS.forEach(id => {
+    localStorage.setItem('farmaci_setting_' + id, document.getElementById(id).value);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadFarmaciSettings();
+  FARMACI_SETTINGS_IDS.forEach(id => {
+    document.getElementById(id).addEventListener('change', saveFarmaciSettings);
+  });
+
+  const savedKey = localStorage.getItem('epi_openai_key');
+  const savedDraft = localStorage.getItem('epi_ultima_bozza');
+  if(savedKey) document.getElementById('epiApiKey').value = savedKey;
+  if(savedDraft) document.getElementById('epiInput').value = savedDraft;
+
+  renderFarmaciHistory();
+  renderAnamnesiHistory();
+  renderEpicrisiHistory();
+});
+
+function epiBuildPrompt(tipoValue, inputValue){
+  if(tipoValue === "Diagnosi (ICD-9-CM)"){
+    return `Sulla base del testo seguente individua:
+1) le diagnosi di dimissione, ordinate per rilevanza clinica;
+2) gli interventi/procedure eseguiti durante il ricovero, ordinati per rilevanza clinica.
+
+Per ciascuna diagnosi e per ciascun intervento/procedura proponi il relativo codice ICD-9-CM utilizzabile per la codifica SDO italiana.
+Se il codice non è univoco indica le alternative.
+
+IMPORTANTE: scrivi tutti i codici SENZA il punto (es. al posto di 531.0 scrivi 5310).
+
+Restituisci il risultato in due elenchi separati, con questo formato:
+
+DIAGNOSI:
+* Descrizione diagnosi - CODICE
+
+INTERVENTI/PROCEDURE:
+* Descrizione intervento - CODICE
+
+TESTO:
+${inputValue}`;
+  }
+  if(tipoValue === "Riscrittura testo libero"){
+    return `Agisci come un medico specialista con ottime capacità di scrittura clinica.
+
+Il tuo compito è riscrivere il testo che ti fornisco mantenendone integralmente il contenuto clinico, senza aggiungere o rimuovere informazioni.
+
+Segui queste regole:
+- Utilizza un italiano corretto, naturale e professionale.
+- Rendi il testo più fluido e scorrevole, eliminando ripetizioni e frasi poco eleganti.
+- Mantieni un tono rassicurante ma autorevole.
+- Utilizza una terminologia medica appropriata, spiegando i concetti quando il destinatario è un paziente.
+- Non modificare indicazioni terapeutiche, dosaggi o decisioni cliniche.
+- Collega i concetti con transizioni logiche, evitando elenchi quando non necessari.
+- Semplifica la sintassi senza impoverire il contenuto.
+- Evita formule ridondanti o burocratiche.
+- Correggi eventuali errori grammaticali o di punteggiatura.
+- Mantieni una lunghezza simile all'originale, salvo che una formulazione diversa migliori sensibilmente la leggibilità.
+
+Se il testo contiene affermazioni potenzialmente ambigue o clinicamente discutibili, non modificarle autonomamente ma segnalamele alla fine.
+
+TESTO:
+${inputValue}`;
+  }
+  // Epicrisi (default)
+  return `Sei un medico internista/geriatra.
+Trasforma gli appunti in una ${tipoValue}.
+Scrivi in italiano medico fluido.
+Non usare elenchi.
+Non riportare dosaggi farmacologici ma solo i principi attivi.
+Collega cronologicamente gli eventi.
+Concludi con le condizioni alla dimissione quando appropriato.
+
+APPUNTI:
+${inputValue}`;
+}
+
+async function epiCallAI(promptText){
+  const apiKey = document.getElementById('epiApiKey').value;
+  const model = document.getElementById('epiModel').value;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {role: "system", content: "Sei uno specialista esperto nella redazione di lettere di dimissione ospedaliere."},
+        {role: "user", content: promptText}
+      ]
+    })
+  });
+  const data = await res.json();
+  if(data.error){ throw new Error(data.error.message); }
+  return data.choices[0].message.content;
+}
+
+function epiEscapeHtml(str){
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function epiMdToHtml(str){
+  let s = epiEscapeHtml(str);
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  return s;
+}
+
+async function epiGenera(){
+  const apiKeyEl = document.getElementById('epiApiKey');
+  const inputEl = document.getElementById('epiInput');
+  const tipoEl = document.getElementById('epiTipo');
+  const outputEl = document.getElementById('epiOutput');
+  const codiciBox = document.getElementById('epiCodiciBox');
+  const outputCodici = document.getElementById('epiOutputCodici');
+
+  localStorage.setItem('epi_openai_key', apiKeyEl.value);
+  localStorage.setItem('epi_ultima_bozza', inputEl.value);
+
+  if(!apiKeyEl.value){
+    outputEl.innerHTML = '<span class="empty">Inserisci prima la tua API Key OpenAI.</span>';
+    return;
+  }
+  if(!inputEl.value.trim()){
+    outputEl.innerHTML = '<span class="empty">Incolla prima gli appunti.</span>';
+    return;
+  }
+
+  outputEl.textContent = "Generazione...";
+  codiciBox.style.display = "none";
+  outputCodici.innerHTML = "";
+
+  try{
+    if(tipoEl.value === "Epicrisi"){
+      const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value);
+      const diagnosiPrompt = epiBuildPrompt("Diagnosi (ICD-9-CM)", inputEl.value);
+      const [epicrisiText, diagnosiText] = await Promise.all([
+        epiCallAI(epicrisiPrompt),
+        epiCallAI(diagnosiPrompt)
+      ]);
+      outputEl.innerHTML = epiMdToHtml(epicrisiText);
+      outputCodici.innerHTML = epiMdToHtml(diagnosiText);
+      codiciBox.style.display = "block";
+    } else {
+      const prompt = epiBuildPrompt(tipoEl.value, inputEl.value);
+      outputEl.innerHTML = epiMdToHtml(await epiCallAI(prompt));
+    }
+    historyAdd('epicrisi_history', {
+      ts: Date.now(), input: inputEl.value, tipo: tipoEl.value,
+      outputHTML: outputEl.innerHTML,
+      codiciHTML: outputCodici.innerHTML,
+      showCodici: codiciBox.style.display === "block"
+    });
+    renderEpicrisiHistory();
+  }catch(e){
+    outputEl.textContent = "Errore: " + e.message;
+  }
+}
+
+function renderEpicrisiHistory(){
+  renderHistoryList('epicrisi_history', 'epicrisiHistoryList', 'epicrisiHistoryDetails',
+    entry => '[' + entry.tipo + '] ' + entry.input.replace(/\n/g,' ').slice(0, 45) + '…',
+    entry => {
+      document.getElementById('epiInput').value = entry.input;
+      document.getElementById('epiTipo').value = entry.tipo;
+      document.getElementById('epiOutput').innerHTML = entry.outputHTML;
+      const codiciBox = document.getElementById('epiCodiciBox');
+      document.getElementById('epiOutputCodici').innerHTML = entry.codiciHTML || '';
+      codiciBox.style.display = entry.showCodici ? 'block' : 'none';
+    }
+  );
+}
+
+async function epiCopia(){
+  const outputEl = document.getElementById('epiOutput');
+  const html = outputEl.innerHTML;
+  const text = outputEl.innerText;
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      const item = new ClipboardItem({
+        "text/html": new Blob([html], {type: "text/html"}),
+        "text/plain": new Blob([text], {type: "text/plain"})
+      });
+      await navigator.clipboard.write([item]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+  }catch(e){
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch(err){
+      alert("Errore durante la copia: " + err);
+      return;
+    }
+  }
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = 'Copiato ✓';
+  setTimeout(() => btn.textContent = orig, 1200);
+}
+</script>
+</body>
+</html>
