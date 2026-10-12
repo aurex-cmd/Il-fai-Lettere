@@ -17,7 +17,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Segoe UI,Roboto,sans-serif;
     color:var(--text);
   }
-  body{max-width:880px; margin:0 auto;}
+  body{max-width:800px; margin:0 auto;}
   h1{font-size:34px; font-weight:700; letter-spacing:-0.01em; margin:16px 0 14px;}
   .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 4px;}
   .brand{display:flex; align-items:center; gap:8px; min-width:0;}
@@ -31,8 +31,9 @@
   }
   .brand-title em{font-style:italic; color:var(--accent);}
   .topbar button{
-    position:relative; flex:none; width:34px; height:34px; margin:0; padding:0;
-    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    position:relative; flex:none; width:auto; height:30px; margin:0; padding:0 11px;
+    border-radius:15px; display:flex; align-items:center; gap:5px;
+    font-size:12px; font-weight:600; white-space:nowrap;
     background:#e5e5ea; color:#8e8e93;
   }
   .topbar button::before{content:""; position:absolute; inset:-5px;}
@@ -177,7 +178,8 @@
     <div class="brand-title">Il Fai <em>Lettere</em></div>
   </div>
   <button id="settingsBtn" onclick="openSettings()" aria-label="API Key">
-    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3"/><path d="m16 7 3 3"/><path d="m18 5 2 2"/></svg>
+    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3"/><path d="m16 7 3 3"/><path d="m18 5 2 2"/></svg>
+    API Key
   </button>
 </div>
 
