@@ -35,11 +35,11 @@
     background:#fafafa; margin-bottom:14px; -webkit-appearance:none;
   }
   .small{font-size:12px; color:var(--sub);}
-  #epiOutput, #epiOutputCodici{
+  #epiOutput, #epiOutputCodici, #esamiOutput{
     font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:60px;
     background:#fafafa; border:1px solid var(--border); border-radius:10px; padding:10px;
   }
-  #epiOutput:focus{outline:2px solid var(--accent); background:#fff;}
+  #epiOutput:focus, #esamiOutput:focus{outline:2px solid var(--accent); background:#fff;}
   button{
     -webkit-appearance:none; border:none; background:var(--accent); color:#fff;
     font-size:16px; font-weight:600; padding:12px 18px; border-radius:12px;
@@ -106,6 +106,7 @@
 <div class="brand">Il Fai Lettere</div>
 <div class="tabs">
   <button class="tab-btn active" id="tabBtnAnamnesi" onclick="switchTab('anamnesi')">Anamnesi</button>
+  <button class="tab-btn" id="tabBtnEsami" onclick="switchTab('esami')">Esami</button>
   <button class="tab-btn" id="tabBtnFarmaci" onclick="switchTab('farmaci')">Farmaci</button>
   <button class="tab-btn" id="tabBtnEpicrisi" onclick="switchTab('epicrisi')">Epicrisi</button>
 </div>
@@ -163,6 +164,28 @@
   <details id="anamnesiHistoryDetails" style="display:none;">
     <summary>Cronologia (ultimi 5)</summary>
     <div id="anamnesiHistoryList" style="margin-top:8px;"></div>
+  </details>
+</div>
+</div>
+
+<div id="panelEsami" style="display:none;">
+<h1>Sistema Esami</h1>
+
+<div class="card">
+  <p class="small" style="margin-top:0;">Usa la API Key e il modello impostati nella scheda Epicrisi.</p>
+  <label for="esamiInput">Referti degli esami</label>
+  <textarea id="esamiInput" style="min-height:280px;" placeholder="Incolla qui i referti degli esami..."></textarea>
+  <button onclick="esamiGenera()">Sistema Esami</button>
+</div>
+
+<div class="card">
+  <label>Risultato</label>
+  <p class="small" style="margin-top:-10px;">Il testo è modificabile: clicca e correggi liberamente prima di copiare.</p>
+  <div id="esamiOutput" contenteditable="true"><span class="empty">Il risultato comparirà qui.</span></div>
+  <button class="secondary" onclick="copiaFormattato('esamiOutput', event.target)">Copia</button>
+  <details id="esamiHistoryDetails" style="display:none;">
+    <summary>Cronologia (ultimi 5)</summary>
+    <div id="esamiHistoryList" style="margin-top:8px;"></div>
   </details>
 </div>
 </div>
@@ -610,9 +633,11 @@ function copyOut(){
 function switchTab(tab){
   document.getElementById('panelFarmaci').style.display = tab === 'farmaci' ? '' : 'none';
   document.getElementById('panelAnamnesi').style.display = tab === 'anamnesi' ? '' : 'none';
+  document.getElementById('panelEsami').style.display = tab === 'esami' ? '' : 'none';
   document.getElementById('panelEpicrisi').style.display = tab === 'epicrisi' ? '' : 'none';
   document.getElementById('tabBtnFarmaci').classList.toggle('active', tab === 'farmaci');
   document.getElementById('tabBtnAnamnesi').classList.toggle('active', tab === 'anamnesi');
+  document.getElementById('tabBtnEsami').classList.toggle('active', tab === 'esami');
   document.getElementById('tabBtnEpicrisi').classList.toggle('active', tab === 'epicrisi');
 }
 
@@ -860,6 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFarmaciHistory();
   renderAnamnesiHistory();
   renderEpicrisiHistory();
+  renderEsamiHistory();
 });
 
 const EPI_SETTINGS_IDS = ['epiModel', 'epiModelCustom', 'epiTipo', 'epiLunghezza'];
@@ -1050,8 +1076,13 @@ function renderEpicrisiHistory(){
   );
 }
 
-async function epiCopia(){
-  const outputEl = document.getElementById('epiOutput');
+function epiCopia(){
+  copiaFormattato('epiOutput', event.target);
+}
+
+// Copia mantenendo la formattazione (grassetti) quando il browser lo consente
+async function copiaFormattato(elId, btn){
+  const outputEl = document.getElementById(elId);
   const html = outputEl.innerHTML;
   const text = outputEl.innerText;
   try{
@@ -1072,10 +1103,54 @@ async function epiCopia(){
       return;
     }
   }
-  const btn = event.target;
   const orig = btn.textContent;
   btn.textContent = 'Copiato ✓';
   setTimeout(() => btn.textContent = orig, 1200);
+}
+
+// --- Sistema Esami: riordina i referti tramite l'API OpenAI (chiave e modello della scheda Epicrisi) ---
+function esamiBuildPrompt(inputValue){
+  return `Sistema questo testo, riporta prima il nome dell'esame in grassetto (deducilo dal contesto se non è riportato), poi tra parentesi la data dell'esame senza orario. Dopo la parentesi con la data metti due punti e fai partire il testo, che andrà riportato testualmente di seguito, senza errori e con punteggiatura sistemata. Riporta prima il nome dell'esame e tra parentesi la data in cui è stato eseguito. Elimina l'orario in cui è stato eseguito. Metti infine in ordine cronologico i vari esami.
+
+Separa ogni esame con una riga vuota. Restituisci solo il testo sistemato, senza commenti o introduzioni.
+
+TESTO:
+${inputValue}`;
+}
+
+async function esamiGenera(){
+  const inputEl = document.getElementById('esamiInput');
+  const outputEl = document.getElementById('esamiOutput');
+  if(!document.getElementById('epiApiKey').value){
+    outputEl.innerHTML = '<span class="empty">Inserisci prima la tua API Key OpenAI nella scheda Epicrisi.</span>';
+    return;
+  }
+  if(!epiGetModel()){
+    outputEl.innerHTML = '<span class="empty">Scegli il modello nella scheda Epicrisi.</span>';
+    return;
+  }
+  if(!inputEl.value.trim()){
+    outputEl.innerHTML = '<span class="empty">Incolla prima i referti.</span>';
+    return;
+  }
+  outputEl.textContent = "Generazione...";
+  try{
+    outputEl.innerHTML = epiMdToHtml(await epiCallAI(esamiBuildPrompt(inputEl.value)));
+    historyAdd('esami_history', {ts: Date.now(), input: inputEl.value, outputHTML: outputEl.innerHTML});
+    renderEsamiHistory();
+  }catch(e){
+    outputEl.textContent = "Errore: " + e.message;
+  }
+}
+
+function renderEsamiHistory(){
+  renderHistoryList('esami_history', 'esamiHistoryList', 'esamiHistoryDetails',
+    entry => entry.input.replace(/\n/g,' ').slice(0, 50) + '…',
+    entry => {
+      document.getElementById('esamiInput').value = entry.input;
+      document.getElementById('esamiOutput').innerHTML = entry.outputHTML;
+    }
+  );
 }
 </script>
 </body>
