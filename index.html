@@ -100,6 +100,7 @@
   }
   .sdo-code span:active{transform:scale(0.94);}
   .sdo-code span.copied{background:#34c759; color:#fff;}
+  .sdo-verify{font-size:12px; font-weight:600; color:#c93400; margin-top:2px;}
   .sdo-empty{font-size:14px; color:var(--sub); font-style:italic;}
   .sdo-note{font-size:13px; color:var(--sub); margin-top:8px; white-space:pre-wrap;}
   #epiOutput, #esamiOutput{
@@ -305,6 +306,12 @@
       <option value="sintetica">Sintetica (solo aspetti principali)</option>
       <option value="estesa">Estesa</option>
     </select>
+
+    <label for="epiCodifica">Codifica SDO</label>
+    <select id="epiCodifica" onchange="epiSaveSettings()">
+      <option value="icd9">ICD-9-CM (attuale)</option>
+      <option value="icd10">ICD-10-IM + CIPI (dal 2027)</option>
+    </select>
   </div>
 
   <label for="epiInput">Appunti</label>
@@ -328,7 +335,7 @@
 </div>
 
 <div class="card" id="epiCodiciBox" style="display:none;">
-  <label>Diagnosi e codici ICD-9-CM</label>
+  <label id="epiCodiciTitle">Diagnosi e codici ICD-9-CM</label>
   <p class="small" style="margin-top:-10px;">Testo generato automaticamente, non incluso nella copia. Tocca un codice per copiarlo.</p>
   <div id="epiOutputCodici"></div>
 </div>
@@ -973,7 +980,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderEsamiHistory();
 });
 
-const EPI_SETTINGS_IDS = ['epiModel', 'epiModelCustom', 'epiTipo', 'epiLunghezza'];
+const EPI_SETTINGS_IDS = ['epiModel', 'epiModelCustom', 'epiTipo', 'epiLunghezza', 'epiCodifica'];
+const SDO_CODIFICHE = {
+  icd9: 'Diagnosi e codici ICD-9-CM',
+  icd10: 'Diagnosi ICD-10-IM e procedure CIPI'
+};
 
 function epiLoadSettings(){
   EPI_SETTINGS_IDS.forEach(id => {
@@ -1026,6 +1037,30 @@ function epiGetModel(){
 }
 
 function epiBuildPrompt(tipoValue, inputValue, lunghezza){
+  if(tipoValue === "Diagnosi (ICD-10-IM)"){
+    return `Sulla base del testo seguente individua:
+1) le diagnosi di dimissione, ordinate per rilevanza clinica;
+2) gli interventi/procedure eseguiti durante il ricovero, ordinati per rilevanza clinica.
+
+Per la codifica SDO italiana secondo il DM Salute 23 ottobre 2025 (in uso dal 1° gennaio 2027):
+- per ciascuna diagnosi proponi il codice ICD-10-IM (ICD-10 Italian Modification);
+- per ciascun intervento/procedura proponi il codice CIPI (Classificazione Italiana delle Procedure e degli Interventi).
+Se il codice non è univoco indica le alternative.
+Se non sei certo del codice esatto (in particolare per la CIPI), scrivi il codice più probabile seguito da " (da verificare)".
+
+IMPORTANTE: scrivi tutti i codici SENZA punti né spazi (es. al posto di J18.9 scrivi J189).
+
+Restituisci il risultato ESATTAMENTE in questo formato, una voce per riga, con la descrizione e il codice separati dal carattere | (barra verticale). Se ci sono codici alternativi separali con " / ". Non aggiungere altro testo, elenchi puntati o commenti. Se una sezione non ha voci scrivi "Nessuno".
+
+DIAGNOSI:
+Descrizione diagnosi | CODICE
+
+INTERVENTI/PROCEDURE:
+Descrizione intervento | CODICE
+
+TESTO:
+${inputValue}`;
+  }
   if(tipoValue === "Diagnosi (ICD-9-CM)"){
     return `Sulla base del testo seguente individua:
 1) le diagnosi di dimissione, ordinate per rilevanza clinica;
@@ -1125,8 +1160,11 @@ function sdoParse(text){
     // "Descrizione | CODICE" (formato richiesto) oppure "Descrizione - CODICE" (vecchio formato)
     let m = line.match(/^(.+?)\s*\|\s*(.+)$/) || line.match(/^(.+)\s+[-–—:]\s+([VE]?\d[\dVE\s\/,.oO]*)$/);
     if(current && m){
-      const codes = m[2].split(/\s*(?:\/|,|\so\s)\s*/).map(c => c.replace(/[.\s]/g, '')).filter(Boolean);
-      current.rows.push({desc: m[1].trim(), codes: codes});
+      let codesText = m[2];
+      const verify = /da\s+verificare/i.test(codesText);
+      codesText = codesText.replace(/\(?\s*da\s+verificare\s*\)?/ig, '');
+      const codes = codesText.split(/\s*(?:\/|,|\so\s)\s*/).map(c => c.replace(/[.\s]/g, '')).filter(Boolean);
+      current.rows.push({desc: m[1].trim(), codes: codes, verify: verify});
     } else if(current && /^nessun/i.test(line)){
       // sezione vuota
     } else {
@@ -1154,7 +1192,8 @@ function sdoRender(el, text){
     }
     html += '<table class="sdo-table"><tbody>';
     sec.rows.forEach(r => {
-      html += '<tr><td class="sdo-desc">' + epiEscapeHtml(r.desc) + '</td><td class="sdo-code">' +
+      html += '<tr><td class="sdo-desc">' + epiEscapeHtml(r.desc) +
+              (r.verify ? '<div class="sdo-verify">da verificare</div>' : '') + '</td><td class="sdo-code">' +
               r.codes.map(c => '<span title="Tocca per copiare">' + epiEscapeHtml(c) + '</span>').join('<br>') + '</td></tr>';
     });
     html += '</tbody></table>';
@@ -1231,19 +1270,21 @@ async function epiGenera(){
   }
 
   outputEl.textContent = "Generazione...";
+  const codifica = document.getElementById('epiCodifica').value;
   codiciBox.style.display = "none";
   outputCodici.innerHTML = "";
 
   try{
     if(tipoEl.value === "Epicrisi"){
       const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value, document.getElementById('epiLunghezza').value);
-      const diagnosiPrompt = epiBuildPrompt("Diagnosi (ICD-9-CM)", inputEl.value);
+      const diagnosiPrompt = epiBuildPrompt(codifica === 'icd10' ? "Diagnosi (ICD-10-IM)" : "Diagnosi (ICD-9-CM)", inputEl.value);
       const [epicrisiText, diagnosiText] = await Promise.all([
         epiCallAI(epicrisiPrompt),
         epiCallAI(diagnosiPrompt)
       ]);
       outputEl.innerHTML = epiMdToHtml(epicrisiText);
       sdoRender(outputCodici, diagnosiText);
+      document.getElementById('epiCodiciTitle').textContent = SDO_CODIFICHE[codifica];
       codiciBox.style.display = "block";
     } else {
       const prompt = epiBuildPrompt(tipoEl.value, inputEl.value);
@@ -1253,6 +1294,7 @@ async function epiGenera(){
       ts: Date.now(), input: inputEl.value, tipo: tipoEl.value,
       outputHTML: outputEl.innerHTML,
       codiciHTML: outputCodici.innerHTML,
+      codifica: codifica,
       showCodici: codiciBox.style.display === "block"
     });
     renderEpicrisiHistory();
@@ -1273,6 +1315,7 @@ function renderEpicrisiHistory(){
       codiciEl.innerHTML = entry.codiciHTML || '';
       codiciEl.className = (entry.codiciHTML || '').includes('sdo-table') ? '' : 'raw';
       codiciBox.style.display = entry.showCodici ? 'block' : 'none';
+      document.getElementById('epiCodiciTitle').textContent = SDO_CODIFICHE[entry.codifica || 'icd9'];
     }
   );
 }
