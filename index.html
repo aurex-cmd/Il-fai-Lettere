@@ -18,7 +18,25 @@
     color:var(--text);
   }
   h1{font-size:20px; font-weight:700; margin:4px 0 16px;}
-  .brand{font-size:15px; font-weight:700; color:var(--accent); margin:0 0 10px;}
+  .brand{font-size:15px; font-weight:700; color:var(--accent); margin:0;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin:0 0 10px;}
+  .topbar button{
+    width:auto; margin:0; padding:6px 12px; font-size:13px; border-radius:16px;
+    background:#e5e5ea; color:var(--text);
+  }
+  .topbar button.missing{background:#ff9500; color:#fff;}
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100; display:none;
+    align-items:center; justify-content:center; padding:16px;
+    background:rgba(0,0,0,0.25);
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:var(--card); border-radius:16px; padding:18px;
+    width:100%; max-width:420px; box-shadow:0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h2{margin:0 0 14px; font-size:18px;}
   .card{
     background:var(--card); border-radius:14px; padding:14px;
     margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,0.04);
@@ -103,7 +121,32 @@
 </head>
 <body>
 
-<div class="brand">Il Fai Lettere</div>
+<div class="topbar">
+  <div class="brand">Il Fai Lettere</div>
+  <button id="settingsBtn" onclick="openSettings()">🔑 API Key</button>
+</div>
+
+<div class="modal-overlay" id="settingsModal" onclick="if(event.target === this) saveSettings()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">Impostazioni OpenAI</h2>
+    <label for="epiApiKey">API Key OpenAI</label>
+    <input id="epiApiKey" type="password" placeholder="sk-...">
+    <p class="small" style="margin:-10px 0 14px;">Viene salvata solo nel browser (localStorage), mai inviata altrove. Usata dalle schede Esami ed Epicrisi.</p>
+
+    <label for="epiModel">Modello</label>
+    <select id="epiModel" onchange="epiSaveSettings()">
+      <option>gpt-5.5</option>
+      <option>gpt-5</option>
+      <option>gpt-5-mini</option>
+      <option>gpt-5-nano</option>
+      <option>gpt-4.1</option>
+      <option value="custom">Altro…</option>
+    </select>
+    <input id="epiModelCustom" type="text" placeholder="Nome esatto del modello OpenAI" style="display:none;" onchange="epiSaveSettings()">
+
+    <button onclick="saveSettings()">Salva</button>
+  </div>
+</div>
 <div class="tabs">
   <button class="tab-btn active" id="tabBtnAnamnesi" onclick="switchTab('anamnesi')">Anamnesi</button>
   <button class="tab-btn" id="tabBtnEsami" onclick="switchTab('esami')">Esami</button>
@@ -172,7 +215,6 @@
 <h1>Sistema Esami</h1>
 
 <div class="card">
-  <p class="small" style="margin-top:0;">Usa la API Key e il modello impostati nella scheda Epicrisi.</p>
   <label for="esamiInput">Referti degli esami</label>
   <textarea id="esamiInput" style="min-height:280px;" placeholder="Incolla qui i referti degli esami..."></textarea>
   <button onclick="esamiGenera()">Sistema Esami</button>
@@ -194,21 +236,6 @@
 <h1>Epicrisi AI</h1>
 
 <div class="card">
-  <label for="epiApiKey">API Key OpenAI</label>
-  <input id="epiApiKey" type="password" placeholder="sk-...">
-  <p class="small" style="margin:-10px 0 14px;">Viene salvata solo nel browser (localStorage), mai inviata altrove.</p>
-
-  <label for="epiModel">Modello</label>
-  <select id="epiModel" onchange="epiSaveSettings()">
-    <option>gpt-5.5</option>
-    <option>gpt-5</option>
-    <option>gpt-5-mini</option>
-    <option>gpt-5-nano</option>
-    <option>gpt-4.1</option>
-    <option value="custom">Altro…</option>
-  </select>
-  <input id="epiModelCustom" type="text" placeholder="Nome esatto del modello OpenAI" style="display:none;" onchange="epiSaveSettings()">
-
   <label for="epiTipo">Tipo documento</label>
   <select id="epiTipo" onchange="epiSaveSettings()">
     <option>Epicrisi</option>
@@ -879,6 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedKey = localStorage.getItem('epi_openai_key');
   const savedDraft = localStorage.getItem('epi_ultima_bozza');
   if(savedKey) document.getElementById('epiApiKey').value = savedKey;
+  updateSettingsBtn();
   if(savedDraft) document.getElementById('epiInput').value = savedDraft;
   epiLoadSettings();
 
@@ -909,6 +937,29 @@ function epiUpdateVisibility(){
   document.getElementById('epiLunghezzaBox').style.display =
     document.getElementById('epiTipo').value === 'Epicrisi' ? 'block' : 'none';
 }
+// --- Finestra impostazioni (API Key e modello) ---
+function openSettings(){
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('epiApiKey').focus();
+}
+function closeSettings(){
+  document.getElementById('settingsModal').classList.remove('open');
+}
+function saveSettings(){
+  localStorage.setItem('epi_openai_key', document.getElementById('epiApiKey').value.trim());
+  document.getElementById('epiApiKey').value = localStorage.getItem('epi_openai_key');
+  epiSaveSettings();
+  updateSettingsBtn();
+  closeSettings();
+}
+function updateSettingsBtn(){
+  const missing = !document.getElementById('epiApiKey').value;
+  document.getElementById('settingsBtn').classList.toggle('missing', missing);
+}
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('settingsModal').classList.contains('open')) saveSettings();
+});
+
 function epiGetModel(){
   const sel = document.getElementById('epiModel').value;
   return sel === 'custom' ? document.getElementById('epiModelCustom').value.trim() : sel;
@@ -1015,11 +1066,11 @@ async function epiGenera(){
   const codiciBox = document.getElementById('epiCodiciBox');
   const outputCodici = document.getElementById('epiOutputCodici');
 
-  localStorage.setItem('epi_openai_key', apiKeyEl.value);
   localStorage.setItem('epi_ultima_bozza', inputEl.value);
 
   if(!apiKeyEl.value){
     outputEl.innerHTML = '<span class="empty">Inserisci prima la tua API Key OpenAI.</span>';
+    openSettings();
     return;
   }
   if(!inputEl.value.trim()){
@@ -1028,6 +1079,7 @@ async function epiGenera(){
   }
   if(!epiGetModel()){
     outputEl.innerHTML = '<span class="empty">Scrivi il nome del modello.</span>';
+    openSettings();
     return;
   }
 
@@ -1122,11 +1174,13 @@ async function esamiGenera(){
   const inputEl = document.getElementById('esamiInput');
   const outputEl = document.getElementById('esamiOutput');
   if(!document.getElementById('epiApiKey').value){
-    outputEl.innerHTML = '<span class="empty">Inserisci prima la tua API Key OpenAI nella scheda Epicrisi.</span>';
+    outputEl.innerHTML = '<span class="empty">Inserisci prima la tua API Key OpenAI.</span>';
+    openSettings();
     return;
   }
   if(!epiGetModel()){
-    outputEl.innerHTML = '<span class="empty">Scegli il modello nella scheda Epicrisi.</span>';
+    outputEl.innerHTML = '<span class="empty">Scrivi il nome del modello.</span>';
+    openSettings();
     return;
   }
   if(!inputEl.value.trim()){
