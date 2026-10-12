@@ -24,7 +24,9 @@
     width:auto; margin:0; padding:6px 12px; font-size:13px; border-radius:16px;
     background:#e5e5ea; color:var(--text);
   }
-  .topbar button.missing{background:#ff9500; color:#fff;}
+  .topbar button.missing{color:var(--sub);}
+  .topbar button.missing .key-icon{filter:grayscale(1); opacity:0.5;}
+  .topbar button.saved{background:#ffd60a; color:#1c1c1e;}
   .modal-overlay{
     position:fixed; inset:0; z-index:100; display:none;
     align-items:center; justify-content:center; padding:16px;
@@ -123,7 +125,7 @@
 
 <div class="topbar">
   <div class="brand">Il Fai Lettere</div>
-  <button id="settingsBtn" onclick="openSettings()">🔑 API Key</button>
+  <button id="settingsBtn" onclick="openSettings()"><span class="key-icon">🔑</span> API Key</button>
 </div>
 
 <div class="modal-overlay" id="settingsModal" onclick="if(event.target === this) saveSettings()">
@@ -954,7 +956,10 @@ function saveSettings(){
 }
 function updateSettingsBtn(){
   const missing = !document.getElementById('epiApiKey').value;
-  document.getElementById('settingsBtn').classList.toggle('missing', missing);
+  const btn = document.getElementById('settingsBtn');
+  btn.classList.toggle('missing', missing);
+  btn.classList.toggle('saved', !missing);
+  btn.title = missing ? 'API Key non inserita' : 'API Key salvata in questo browser';
 }
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && document.getElementById('settingsModal').classList.contains('open')) saveSettings();
