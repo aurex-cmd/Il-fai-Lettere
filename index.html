@@ -73,7 +73,36 @@
     background:#fafafa; margin-bottom:14px; -webkit-appearance:none;
   }
   .small{font-size:12px; color:var(--sub);}
-  #epiOutput, #epiOutputCodici, #esamiOutput{
+  #epiOutputCodici{font-size:15px; line-height:1.5;}
+  #epiOutputCodici.raw{
+    white-space:pre-wrap; background:#fafafa; border:1px solid var(--border); border-radius:10px; padding:10px;
+  }
+  .sdo-section{
+    font-size:12px; font-weight:700; letter-spacing:0.08em; color:var(--sub);
+    margin:4px 0 6px;
+  }
+  .sdo-section:not(:first-child){margin-top:18px;}
+  .sdo-table{
+    width:100%; border-collapse:separate; border-spacing:0;
+    border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff;
+  }
+  .sdo-table td{padding:11px 12px; vertical-align:middle; border-top:1px solid var(--border);}
+  .sdo-table tr:first-child td{border-top:none;}
+  .sdo-table tr:nth-child(even) td{background:#fafafa;}
+  .sdo-desc{font-size:16px; font-weight:500; color:var(--text);}
+  .sdo-code{text-align:right; white-space:nowrap; width:1%;}
+  .sdo-code span{
+    display:inline-block; font-size:17px; font-weight:800; letter-spacing:0.03em;
+    font-variant-numeric:tabular-nums; color:var(--accent);
+    background:#eaf3ff; border-radius:8px; padding:4px 9px; margin:2px 0 2px 4px;
+    cursor:pointer; text-align:center; user-select:none; -webkit-user-select:none;
+    transition:background 0.2s, color 0.2s, transform 0.1s;
+  }
+  .sdo-code span:active{transform:scale(0.94);}
+  .sdo-code span.copied{background:#34c759; color:#fff;}
+  .sdo-empty{font-size:14px; color:var(--sub); font-style:italic;}
+  .sdo-note{font-size:13px; color:var(--sub); margin-top:8px; white-space:pre-wrap;}
+  #epiOutput, #esamiOutput{
     font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:60px;
     background:#fafafa; border:1px solid var(--border); border-radius:10px; padding:10px;
   }
@@ -300,7 +329,7 @@
 
 <div class="card" id="epiCodiciBox" style="display:none;">
   <label>Diagnosi e codici ICD-9-CM</label>
-  <p class="small" style="margin-top:-10px;">Testo generato automaticamente, non incluso nella copia.</p>
+  <p class="small" style="margin-top:-10px;">Testo generato automaticamente, non incluso nella copia. Tocca un codice per copiarlo.</p>
   <div id="epiOutputCodici"></div>
 </div>
 </div>
@@ -1007,13 +1036,13 @@ Se il codice non è univoco indica le alternative.
 
 IMPORTANTE: scrivi tutti i codici SENZA il punto (es. al posto di 531.0 scrivi 5310).
 
-Restituisci il risultato in due elenchi separati, con questo formato:
+Restituisci il risultato ESATTAMENTE in questo formato, una voce per riga, con la descrizione e il codice separati dal carattere | (barra verticale). Se ci sono codici alternativi separali con " / ". Non aggiungere altro testo, elenchi puntati o commenti. Se una sezione non ha voci scrivi "Nessuno".
 
 DIAGNOSI:
-* Descrizione diagnosi - CODICE
+Descrizione diagnosi | CODICE
 
 INTERVENTI/PROCEDURE:
-* Descrizione intervento - CODICE
+Descrizione intervento | CODICE
 
 TESTO:
 ${inputValue}`;
@@ -1079,6 +1108,93 @@ async function epiCallAI(promptText){
   return data.choices[0].message.content;
 }
 
+// --- SDO: trasforma l'elenco diagnosi/interventi in tabelle (descrizione a sinistra, codice a destra) ---
+function sdoParse(text){
+  const sections = [];
+  const notes = [];
+  let current = null;
+  text.split('\n').forEach(rawLine => {
+    const line = rawLine.replace(/\*\*/g, '').replace(/^\s*(?:[*\-•]|\d+[.)])\s*/, '').trim();
+    if(!line) return;
+    const head = line.match(/^(DIAGNOSI|INTERVENTI\s*\/?\s*PROCEDURE|INTERVENTI|PROCEDURE)\s*:?\s*$/i);
+    if(head){
+      current = {title: /^DIAGNOSI/i.test(head[1]) ? 'Diagnosi' : 'Interventi / Procedure', rows: []};
+      sections.push(current);
+      return;
+    }
+    // "Descrizione | CODICE" (formato richiesto) oppure "Descrizione - CODICE" (vecchio formato)
+    let m = line.match(/^(.+?)\s*\|\s*(.+)$/) || line.match(/^(.+)\s+[-–—:]\s+([VE]?\d[\dVE\s\/,.oO]*)$/);
+    if(current && m){
+      const codes = m[2].split(/\s*(?:\/|,|\so\s)\s*/).map(c => c.replace(/[.\s]/g, '')).filter(Boolean);
+      current.rows.push({desc: m[1].trim(), codes: codes});
+    } else if(current && /^nessun/i.test(line)){
+      // sezione vuota
+    } else {
+      notes.push(line);
+    }
+  });
+  return {sections, notes};
+}
+
+function sdoRender(el, text){
+  const parsed = sdoParse(text);
+  const hasRows = parsed.sections.some(sec => sec.rows.length);
+  if(!hasRows){
+    el.className = 'raw';
+    el.innerHTML = epiMdToHtml(text);
+    return;
+  }
+  el.className = '';
+  let html = '';
+  parsed.sections.forEach(sec => {
+    html += '<div class="sdo-section">' + sec.title.toUpperCase() + '</div>';
+    if(!sec.rows.length){
+      html += '<div class="sdo-empty">Nessuno</div>';
+      return;
+    }
+    html += '<table class="sdo-table"><tbody>';
+    sec.rows.forEach(r => {
+      html += '<tr><td class="sdo-desc">' + epiEscapeHtml(r.desc) + '</td><td class="sdo-code">' +
+              r.codes.map(c => '<span title="Tocca per copiare">' + epiEscapeHtml(c) + '</span>').join('<br>') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  });
+  if(parsed.notes.length){
+    html += '<div class="sdo-note">' + epiEscapeHtml(parsed.notes.join('\n')) + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// Tocco su un codice SDO: copia solo il codice (senza spazi) e mostra una spunta per un attimo
+async function sdoCopyCode(span){
+  if(span.classList.contains('copied')) return;
+  const code = span.dataset.code || span.textContent.replace(/\s+/g, '');
+  span.dataset.code = code;
+  try{
+    await navigator.clipboard.writeText(code);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  span.style.minWidth = span.offsetWidth + 'px';
+  span.textContent = '✓';
+  span.classList.add('copied');
+  setTimeout(() => {
+    span.textContent = code;
+    span.classList.remove('copied');
+    span.style.minWidth = '';
+  }, 1200);
+}
+document.addEventListener('click', e => {
+  const span = e.target.closest('#epiOutputCodici .sdo-code span');
+  if(span) sdoCopyCode(span);
+});
+
 function epiEscapeHtml(str){
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
@@ -1127,7 +1243,7 @@ async function epiGenera(){
         epiCallAI(diagnosiPrompt)
       ]);
       outputEl.innerHTML = epiMdToHtml(epicrisiText);
-      outputCodici.innerHTML = epiMdToHtml(diagnosiText);
+      sdoRender(outputCodici, diagnosiText);
       codiciBox.style.display = "block";
     } else {
       const prompt = epiBuildPrompt(tipoEl.value, inputEl.value);
@@ -1153,7 +1269,9 @@ function renderEpicrisiHistory(){
       document.getElementById('epiTipo').value = entry.tipo;
       document.getElementById('epiOutput').innerHTML = entry.outputHTML;
       const codiciBox = document.getElementById('epiCodiciBox');
-      document.getElementById('epiOutputCodici').innerHTML = entry.codiciHTML || '';
+      const codiciEl = document.getElementById('epiOutputCodici');
+      codiciEl.innerHTML = entry.codiciHTML || '';
+      codiciEl.className = (entry.codiciHTML || '').includes('sdo-table') ? '' : 'raw';
       codiciBox.style.display = entry.showCodici ? 'block' : 'none';
     }
   );
