@@ -176,16 +176,29 @@
   <p class="small" style="margin:-10px 0 14px;">Viene salvata solo nel browser (localStorage), mai inviata altrove.</p>
 
   <label for="epiModel">Modello</label>
-  <select id="epiModel">
+  <select id="epiModel" onchange="epiSaveSettings()">
     <option>gpt-5.5</option>
     <option>gpt-5</option>
+    <option>gpt-5-mini</option>
+    <option>gpt-5-nano</option>
+    <option>gpt-4.1</option>
+    <option value="custom">Altro…</option>
   </select>
+  <input id="epiModelCustom" type="text" placeholder="Nome esatto del modello OpenAI" style="display:none;" onchange="epiSaveSettings()">
 
   <label for="epiTipo">Tipo documento</label>
-  <select id="epiTipo">
+  <select id="epiTipo" onchange="epiSaveSettings()">
     <option>Epicrisi</option>
     <option>Riscrittura testo libero</option>
   </select>
+
+  <div id="epiLunghezzaBox">
+    <label for="epiLunghezza">Lunghezza</label>
+    <select id="epiLunghezza" onchange="epiSaveSettings()">
+      <option value="sintetica">Sintetica (solo aspetti principali)</option>
+      <option value="estesa">Estesa</option>
+    </select>
+  </div>
 
   <label for="epiInput">Appunti</label>
   <textarea id="epiInput" style="min-height:220px;" placeholder="- Ricovero per...
@@ -842,13 +855,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedDraft = localStorage.getItem('epi_ultima_bozza');
   if(savedKey) document.getElementById('epiApiKey').value = savedKey;
   if(savedDraft) document.getElementById('epiInput').value = savedDraft;
+  epiLoadSettings();
 
   renderFarmaciHistory();
   renderAnamnesiHistory();
   renderEpicrisiHistory();
 });
 
-function epiBuildPrompt(tipoValue, inputValue){
+const EPI_SETTINGS_IDS = ['epiModel', 'epiModelCustom', 'epiTipo', 'epiLunghezza'];
+
+function epiLoadSettings(){
+  EPI_SETTINGS_IDS.forEach(id => {
+    const saved = localStorage.getItem('epi_setting_' + id);
+    if(saved !== null) document.getElementById(id).value = saved;
+  });
+  epiUpdateVisibility();
+}
+function epiSaveSettings(){
+  EPI_SETTINGS_IDS.forEach(id => {
+    localStorage.setItem('epi_setting_' + id, document.getElementById(id).value);
+  });
+  epiUpdateVisibility();
+}
+function epiUpdateVisibility(){
+  document.getElementById('epiModelCustom').style.display =
+    document.getElementById('epiModel').value === 'custom' ? 'block' : 'none';
+  document.getElementById('epiLunghezzaBox').style.display =
+    document.getElementById('epiTipo').value === 'Epicrisi' ? 'block' : 'none';
+}
+function epiGetModel(){
+  const sel = document.getElementById('epiModel').value;
+  return sel === 'custom' ? document.getElementById('epiModelCustom').value.trim() : sel;
+}
+
+function epiBuildPrompt(tipoValue, inputValue, lunghezza){
   if(tipoValue === "Diagnosi (ICD-9-CM)"){
     return `Sulla base del testo seguente individua:
 1) le diagnosi di dimissione, ordinate per rilevanza clinica;
@@ -900,14 +940,18 @@ Non usare elenchi.
 Non riportare dosaggi farmacologici ma solo i principi attivi.
 Collega cronologicamente gli eventi.
 Concludi con le condizioni alla dimissione quando appropriato.
-
+${lunghezza === "sintetica" ? `
+Sii sintetico: concentrati sugli aspetti clinici principali (motivo del ricovero, diagnosi, decorso essenziale, terapie rilevanti, condizioni alla dimissione).
+Ometti dettagli secondari, esami nella norma e informazioni ridondanti.
+Non superare indicativamente le 120-150 parole.
+` : ""}
 APPUNTI:
 ${inputValue}`;
 }
 
 async function epiCallAI(promptText){
   const apiKey = document.getElementById('epiApiKey').value;
-  const model = document.getElementById('epiModel').value;
+  const model = epiGetModel();
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -956,6 +1000,10 @@ async function epiGenera(){
     outputEl.innerHTML = '<span class="empty">Incolla prima gli appunti.</span>';
     return;
   }
+  if(!epiGetModel()){
+    outputEl.innerHTML = '<span class="empty">Scrivi il nome del modello.</span>';
+    return;
+  }
 
   outputEl.textContent = "Generazione...";
   codiciBox.style.display = "none";
@@ -963,7 +1011,7 @@ async function epiGenera(){
 
   try{
     if(tipoEl.value === "Epicrisi"){
-      const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value);
+      const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value, document.getElementById('epiLunghezza').value);
       const diagnosiPrompt = epiBuildPrompt("Diagnosi (ICD-9-CM)", inputEl.value);
       const [epicrisiText, diagnosiText] = await Promise.all([
         epiCallAI(epicrisiPrompt),
