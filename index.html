@@ -18,8 +18,26 @@
     color:var(--text);
   }
   h1{font-size:20px; font-weight:700; margin:4px 0 16px;}
-  .brand{font-size:15px; font-weight:700; color:var(--accent); margin:0;}
-  .topbar{display:flex; align-items:center; justify-content:space-between; margin:0 0 10px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 14px;}
+  .brand{display:flex; align-items:center; gap:11px; min-width:0;}
+  .brand-icon{
+    flex:none; width:40px; height:40px; border-radius:11px;
+    background:linear-gradient(145deg,#3a8dff,#0051d5);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 10px rgba(0,90,220,0.35);
+  }
+  .brand-title{
+    font-family:ui-serif,"New York",Georgia,"Times New Roman",serif;
+    font-size:27px; font-weight:400; line-height:1; letter-spacing:-0.01em; white-space:nowrap;
+  }
+  .brand-title em{font-style:italic; color:var(--accent);}
+  .brand-sub{font-size:10px; font-weight:600; letter-spacing:0.18em; color:var(--sub); margin-top:5px;}
+  .topbar button{white-space:nowrap; flex:none;}
+  @media (max-width:360px){
+    .brand-icon{width:34px; height:34px; border-radius:9px;}
+    .brand-title{font-size:22px;}
+    .brand-sub{font-size:9px; letter-spacing:0.12em;}
+  }
   .topbar button{
     width:auto; margin:0; padding:6px 12px; font-size:13px; border-radius:16px;
     background:#e5e5ea; color:var(--text);
@@ -124,7 +142,15 @@
 <body>
 
 <div class="topbar">
-  <div class="brand">Il Fai Lettere</div>
+  <div class="brand">
+    <div class="brand-icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+    </div>
+    <div>
+      <div class="brand-title">Il Fai <em>Lettere</em></div>
+      <div class="brand-sub">DOCUMENTI CLINICI</div>
+    </div>
+  </div>
   <button id="settingsBtn" onclick="openSettings()"><span class="key-icon">🔑</span> API Key</button>
 </div>
 
