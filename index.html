@@ -154,13 +154,25 @@
     display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:13px;
   }
   .decalage-days input{width:50px; padding:6px; border:1px solid var(--border); border-radius:8px; font-size:14px;}
-  .tabs{display:flex; gap:8px; margin-bottom:14px;}
-  .tab-btn{
-    -webkit-appearance:none; border:none; background:#e5e5ea; color:var(--sub);
-    font-size:14px; font-weight:600; padding:10px 14px; border-radius:10px;
-    width:auto; margin:0; flex:1; cursor:pointer;
+  .tabs{
+    display:flex; gap:2px; margin-bottom:14px; padding:3px;
+    background:rgba(118,118,128,0.12); border-radius:12px;
   }
-  .tab-btn.active{background:var(--accent); color:#fff;}
+  .tab-btn{
+    -webkit-appearance:none; border:none; background:transparent; color:var(--sub);
+    font-size:13px; font-weight:600; padding:8px 4px; border-radius:9px;
+    width:auto; margin:0; flex:1; min-width:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    transition:background .15s, color .15s;
+  }
+  .tab-btn svg{
+    flex:none; width:16px; height:16px; fill:none; stroke:currentColor;
+    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+  }
+  .tab-btn.active{background:var(--card); color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+  @media (max-width:360px){
+    .tab-btn{flex-direction:column; gap:3px; font-size:11px; padding:6px 2px;}
+  }
   .spinner{
     display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4);
     border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:-2px; margin-right:6px;
@@ -206,10 +218,10 @@
   </div>
 </div>
 <div class="tabs">
-  <button class="tab-btn active" id="tabBtnAnamnesi" onclick="switchTab('anamnesi')">Anamnesi</button>
-  <button class="tab-btn" id="tabBtnEsami" onclick="switchTab('esami')">Esami</button>
-  <button class="tab-btn" id="tabBtnFarmaci" onclick="switchTab('farmaci')">Farmaci</button>
-  <button class="tab-btn" id="tabBtnEpicrisi" onclick="switchTab('epicrisi')">Epicrisi</button>
+  <button class="tab-btn active" id="tabBtnAnamnesi" onclick="switchTab('anamnesi')"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg><span>Anamnesi</span></button>
+  <button class="tab-btn" id="tabBtnEsami" onclick="switchTab('esami')"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/></svg><span>Esami</span></button>
+  <button class="tab-btn" id="tabBtnFarmaci" onclick="switchTab('farmaci')"><svg viewBox="0 0 24 24"><rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/></svg><span>Farmaci</span></button>
+  <button class="tab-btn" id="tabBtnEpicrisi" onclick="switchTab('epicrisi')"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg><span>Epicrisi</span></button>
 </div>
 
 <div id="panelFarmaci" style="display:none;">
