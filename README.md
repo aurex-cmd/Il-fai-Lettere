@@ -25,3 +25,6 @@ Apri `index.html` (oppure la pagina GitHub Pages, una volta attivata).
 
 ## GitHub Pages
 Settings → Pages → Deploy from branch → `main` → `/ (root)`.
+
+## Cloudflare Workers
+Pubblicata anche su https://il-fai-lettere.au-guarnaccia.workers.dev: Cloudflare è collegato a questo repository (ramo `main`) e ripubblica a ogni modifica.
