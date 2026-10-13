@@ -307,6 +307,13 @@
     <option>Riscrittura testo libero</option>
   </select>
 
+  <label for="epiSesso">Sesso paziente</label>
+  <select id="epiSesso">
+    <option value="">Non specificato</option>
+    <option value="M">Uomo</option>
+    <option value="F">Donna</option>
+  </select>
+
   <div id="epiLunghezzaBox">
     <label for="epiLunghezza">Lunghezza</label>
     <select id="epiLunghezza" onchange="epiSaveSettings()">
@@ -1043,7 +1050,14 @@ function epiGetModel(){
   return sel === 'custom' ? document.getElementById('epiModelCustom').value.trim() : sel;
 }
 
-function epiBuildPrompt(tipoValue, inputValue, lunghezza){
+// Indicazione sul genere grammaticale, in base al sesso scelto (vuota se non specificato)
+function epiSessoPrompt(sesso){
+  if(sesso === 'M') return 'Il paziente è di sesso maschile: usa sempre il genere maschile ("il paziente", aggettivi e participi al maschile).\n';
+  if(sesso === 'F') return 'La paziente è di sesso femminile: usa sempre il genere femminile ("la paziente", aggettivi e participi al femminile).\n';
+  return '';
+}
+
+function epiBuildPrompt(tipoValue, inputValue, lunghezza, sesso){
   if(tipoValue === "Diagnosi (ICD-10-IM)"){
     return `Sulla base del testo seguente individua:
 1) le diagnosi di dimissione, ordinate per rilevanza clinica;
@@ -1107,7 +1121,7 @@ Segui queste regole:
 - Mantieni una lunghezza simile all'originale, salvo che una formulazione diversa migliori sensibilmente la leggibilità.
 
 Se il testo contiene affermazioni potenzialmente ambigue o clinicamente discutibili, non modificarle autonomamente ma segnalamele alla fine.
-
+${epiSessoPrompt(sesso)}
 TESTO:
 ${inputValue}`;
   }
@@ -1119,7 +1133,7 @@ Non usare elenchi.
 Non riportare dosaggi farmacologici ma solo i principi attivi.
 Collega cronologicamente gli eventi.
 Concludi con le condizioni alla dimissione quando appropriato.
-${lunghezza === "sintetica" ? `
+${epiSessoPrompt(sesso)}${lunghezza === "sintetica" ? `
 Sii sintetico: concentrati sugli aspetti clinici principali (motivo del ricovero, diagnosi, decorso essenziale, terapie rilevanti, condizioni alla dimissione).
 Ometti dettagli secondari, esami nella norma e informazioni ridondanti.
 Non superare indicativamente le 120-150 parole.
@@ -1278,12 +1292,13 @@ async function epiGenera(){
 
   outputEl.textContent = "Generazione...";
   const codifica = document.getElementById('epiCodifica').value;
+  const sesso = document.getElementById('epiSesso').value;
   codiciBox.style.display = "none";
   outputCodici.innerHTML = "";
 
   try{
     if(tipoEl.value === "Epicrisi"){
-      const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value, document.getElementById('epiLunghezza').value);
+      const epicrisiPrompt = epiBuildPrompt("Epicrisi", inputEl.value, document.getElementById('epiLunghezza').value, sesso);
       const diagnosiPrompt = epiBuildPrompt(codifica === 'icd10' ? "Diagnosi (ICD-10-IM)" : "Diagnosi (ICD-9-CM)", inputEl.value);
       const [epicrisiText, diagnosiText] = await Promise.all([
         epiCallAI(epicrisiPrompt),
@@ -1294,7 +1309,7 @@ async function epiGenera(){
       document.getElementById('epiCodiciTitle').textContent = SDO_CODIFICHE[codifica];
       codiciBox.style.display = "block";
     } else {
-      const prompt = epiBuildPrompt(tipoEl.value, inputEl.value);
+      const prompt = epiBuildPrompt(tipoEl.value, inputEl.value, undefined, sesso);
       outputEl.innerHTML = epiMdToHtml(await epiCallAI(prompt));
     }
     historyAdd('epicrisi_history', {
@@ -1302,6 +1317,7 @@ async function epiGenera(){
       outputHTML: outputEl.innerHTML,
       codiciHTML: outputCodici.innerHTML,
       codifica: codifica,
+      sesso: sesso,
       showCodici: codiciBox.style.display === "block"
     });
     renderEpicrisiHistory();
@@ -1316,6 +1332,7 @@ function renderEpicrisiHistory(){
     entry => {
       document.getElementById('epiInput').value = entry.input;
       document.getElementById('epiTipo').value = entry.tipo;
+      document.getElementById('epiSesso').value = entry.sesso || '';
       document.getElementById('epiOutput').innerHTML = entry.outputHTML;
       const codiciBox = document.getElementById('epiCodiciBox');
       const codiciEl = document.getElementById('epiOutputCodici');
