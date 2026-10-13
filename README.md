@@ -21,7 +21,7 @@ La chiave è salvata solo nel browser (localStorage) del dispositivo in uso: va 
 Anamnesi e Farmaci funzionano interamente nel browser. Esami ed Epicrisi inviano il testo incollato all'API OpenAI, usando la chiave inserita dall'utente.
 
 ## Uso
-Apri `index.html` (oppure la pagina GitHub Pages, una volta attivata).
+Apri https://il-fai-lettere.au-guarnaccia.workers.dev oppure https://aurex-cmd.github.io/Il-fai-Lettere/ (o il file `index.html` in locale).
 
 ## GitHub Pages
 Settings → Pages → Deploy from branch → `main` → `/ (root)`.
