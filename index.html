@@ -75,6 +75,11 @@
     background:#fafafa; margin-bottom:14px; -webkit-appearance:none;
   }
   .small{font-size:12px; color:var(--sub);}
+  .epi-opts{display:grid; grid-template-columns:1fr 1fr; gap:10px 10px; margin-bottom:14px;}
+  .epi-opts > div{min-width:0;}
+  #epiLunghezzaBox{display:contents;}
+  .epi-opts label{font-size:11px; margin-bottom:4px;}
+  .epi-opts select{margin-bottom:0; padding:7px 10px; font-size:14px;}
   #epiOutputCodici{font-size:15px; line-height:1.5;}
   #epiOutputCodici.raw{
     white-space:pre-wrap; background:#fafafa; border:1px solid var(--border); border-radius:10px; padding:10px;
@@ -301,31 +306,38 @@
 <div id="panelEpicrisi" style="display:none;">
 
 <div class="card">
-  <label for="epiTipo">Tipo documento</label>
-  <select id="epiTipo" onchange="epiSaveSettings()">
-    <option>Epicrisi</option>
-    <option>Riscrittura testo libero</option>
-  </select>
-
-  <label for="epiSesso">Sesso paziente</label>
-  <select id="epiSesso">
-    <option value="">Non specificato</option>
-    <option value="M">Uomo</option>
-    <option value="F">Donna</option>
-  </select>
-
-  <div id="epiLunghezzaBox">
-    <label for="epiLunghezza">Lunghezza</label>
-    <select id="epiLunghezza" onchange="epiSaveSettings()">
-      <option value="sintetica">Sintetica (solo aspetti principali)</option>
-      <option value="estesa">Estesa</option>
-    </select>
-
-    <label for="epiCodifica">Codifica SDO</label>
-    <select id="epiCodifica" onchange="epiSaveSettings()">
-      <option value="icd9">ICD-9-CM (attuale)</option>
-      <option value="icd10">ICD-10-IM + CIPI (dal 2027)</option>
-    </select>
+  <div class="epi-opts">
+    <div>
+      <label for="epiTipo">Documento</label>
+      <select id="epiTipo" onchange="epiSaveSettings()">
+        <option value="Epicrisi">Epicrisi</option>
+        <option value="Riscrittura testo libero">Riscrittura</option>
+      </select>
+    </div>
+    <div>
+      <label for="epiSesso">Sesso</label>
+      <select id="epiSesso">
+        <option value="">Non specificato</option>
+        <option value="M">Uomo</option>
+        <option value="F">Donna</option>
+      </select>
+    </div>
+    <div id="epiLunghezzaBox">
+      <div>
+        <label for="epiLunghezza">Lunghezza</label>
+        <select id="epiLunghezza" onchange="epiSaveSettings()">
+          <option value="sintetica">Sintetica</option>
+          <option value="estesa">Estesa</option>
+        </select>
+      </div>
+      <div>
+        <label for="epiCodifica">Codifica SDO</label>
+        <select id="epiCodifica" onchange="epiSaveSettings()">
+          <option value="icd9">ICD-9-CM</option>
+          <option value="icd10">ICD-10-IM (2027)</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <label for="epiInput">Appunti</label>
@@ -1017,7 +1029,7 @@ function epiUpdateVisibility(){
   document.getElementById('epiModelCustom').style.display =
     document.getElementById('epiModel').value === 'custom' ? 'block' : 'none';
   document.getElementById('epiLunghezzaBox').style.display =
-    document.getElementById('epiTipo').value === 'Epicrisi' ? 'block' : 'none';
+    document.getElementById('epiTipo').value === 'Epicrisi' ? 'contents' : 'none';
 }
 // --- Finestra impostazioni (API Key e modello) ---
 function openSettings(){
