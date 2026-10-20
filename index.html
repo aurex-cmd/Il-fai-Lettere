@@ -343,7 +343,7 @@
 - Ceftriaxone
 - ..."></textarea>
 
-  <button onclick="epiGenera()">Genera Epicrisi</button>
+  <button id="epiGeneraBtn" onclick="epiGenera()">Genera Epicrisi</button>
 </div>
 
 <div class="card">
@@ -1028,6 +1028,7 @@ function epiUpdateVisibility(){
   const soloEpicrisi = document.getElementById('epiTipo').value === 'Epicrisi' ? '' : 'none';
   document.getElementById('epiLunghezzaBox').style.display = soloEpicrisi;
   document.getElementById('epiCodificaBox').style.display = soloEpicrisi;
+  document.getElementById('epiGeneraBtn').textContent = soloEpicrisi ? 'Riscrivi testo' : 'Genera Epicrisi';
 }
 // --- Finestra impostazioni (API Key e modello) ---
 function openSettings(){
@@ -1342,6 +1343,7 @@ function renderEpicrisiHistory(){
     entry => {
       document.getElementById('epiInput').value = entry.input;
       document.getElementById('epiTipo').value = entry.tipo;
+      epiUpdateVisibility();
       document.getElementById('epiSesso').value = entry.sesso || '';
       document.getElementById('epiOutput').innerHTML = entry.outputHTML;
       const codiciBox = document.getElementById('epiCodiciBox');
