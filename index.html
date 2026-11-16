@@ -121,6 +121,12 @@
     width:100%; margin-top:10px; cursor:pointer;
   }
   button.secondary{background:#e5e5ea; color:var(--text); margin-top:8px;}
+  .label-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .label-row label{margin-bottom:0;}
+  button.clear-btn{
+    width:auto; margin:0; padding:4px 11px; font-size:12px; font-weight:600;
+    border-radius:12px; background:#e5e5ea; color:var(--sub); flex:none;
+  }
   button:active{opacity:0.75;}
   #output{
     font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:20px;
@@ -229,7 +235,10 @@
 <div id="panelFarmaci" style="display:none;">
 
 <div class="card">
-  <label for="input">Elenco farmaci (incolla da cartella clinica)</label>
+  <div class="label-row">
+    <label for="input">Elenco farmaci (incolla da cartella clinica)</label>
+    <button type="button" class="clear-btn" onclick="svuota('farmaci')">Svuota</button>
+  </div>
   <textarea id="input" placeholder="Incolla qui l'elenco copiato dalla cartella clinica..."></textarea>
   <button onclick="run()">Formatta Terapia</button>
 </div>
@@ -264,7 +273,10 @@
 <div id="panelAnamnesi">
 
 <div class="card">
-  <label for="anamnesiInput">Testo incollato dalla cartella clinica</label>
+  <div class="label-row">
+    <label for="anamnesiInput">Testo incollato dalla cartella clinica</label>
+    <button type="button" class="clear-btn" onclick="svuota('anamnesi')">Svuota</button>
+  </div>
   <textarea id="anamnesiInput" style="min-height:280px;" placeholder="Incolla qui il testo grezzo (anamnesi fisiologica, patologica prossima, farmacologica, remota)..."></textarea>
   <button id="anamnesiBtn" onclick="runAnamnesi()">Sistema Anamnesi</button>
 </div>
@@ -284,7 +296,10 @@
 <div id="panelEsami" style="display:none;">
 
 <div class="card">
-  <label for="esamiInput">Referti degli esami</label>
+  <div class="label-row">
+    <label for="esamiInput">Referti degli esami</label>
+    <button type="button" class="clear-btn" onclick="svuota('esami')">Svuota</button>
+  </div>
   <textarea id="esamiInput" style="min-height:280px;" placeholder="Incolla qui i referti degli esami..."></textarea>
   <button onclick="esamiGenera()">Sistema Esami</button>
 </div>
@@ -336,7 +351,10 @@
     </div>
   </div>
 
-  <label for="epiInput">Appunti</label>
+  <div class="label-row">
+    <label for="epiInput">Appunti</label>
+    <button type="button" class="clear-btn" onclick="svuota('epicrisi')">Svuota</button>
+  </div>
   <textarea id="epiInput" style="min-height:220px;" placeholder="- Ricovero per...
 - Febbre
 - Ceftriaxone
@@ -593,6 +611,32 @@ function renderHistoryList(key, listElId, detailsElId, previewFn, restoreFn){
     row.onclick = () => restoreFn(entry);
     listEl.appendChild(row);
   });
+}
+
+// --- Pulsante "Svuota": cancella testo incollato e risultato della scheda ---
+const SVUOTA = {
+  farmaci:  {input: 'input', output: 'output', vuoto: 'Il risultato formattato comparirà qui.'},
+  anamnesi: {input: 'anamnesiInput', output: 'anamnesiOutput', vuoto: 'Il testo riordinato comparirà qui.'},
+  esami:    {input: 'esamiInput', output: 'esamiOutput', vuoto: 'Il risultato comparirà qui.'},
+  epicrisi: {input: 'epiInput', output: 'epiOutput', vuoto: 'Il risultato comparirà qui.'}
+};
+function svuota(tab){
+  const c = SVUOTA[tab];
+  const inputEl = document.getElementById(c.input);
+  inputEl.value = '';
+  document.getElementById(c.output).innerHTML = '<span class="empty">' + c.vuoto + '</span>';
+  if(tab === 'farmaci'){
+    document.getElementById('warn').textContent = '';
+    document.getElementById('info').textContent = '';
+    document.getElementById('decalageDaysWrap').style.display = 'none';
+  }
+  if(tab === 'epicrisi'){
+    localStorage.removeItem('epi_ultima_bozza');
+    document.getElementById('epiSesso').value = '';
+    document.getElementById('epiOutputCodici').innerHTML = '';
+    document.getElementById('epiCodiciBox').style.display = 'none';
+  }
+  inputEl.focus();
 }
 
 function run(){
